@@ -6,6 +6,8 @@ import subprocess
 from pathlib import Path
 from time import sleep
 
+import click
+
 
 class Bastion:
     active_tunnel: subprocess.Popen = None
@@ -108,11 +110,22 @@ class Bastion:
 
 # Press the green button in the gutter to run the script.
 def main():
+    print("Welcome to Auto Bastion")
+
+
+@click.group()
+def cli():
+    pass
+
+
+@cli.command("create")
+def create():
     signal.signal(signal.SIGINT, Bastion.kill_bastion)
     signal.signal(signal.SIGTERM, Bastion.kill_bastion)
     Bastion.create_bastion()
 
-if __name__ == "__main__":
-    main()
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+if __name__ == '__main__':
+    cli()
