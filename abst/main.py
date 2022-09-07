@@ -8,6 +8,8 @@ from time import sleep
 
 import click
 
+default_creds_path = (Path().home().resolve() / "creds.json").absolute()
+
 
 class Bastion:
     active_tunnel: subprocess.Popen = None
@@ -36,7 +38,7 @@ class Bastion:
     def create_bastion(cls):
         print("Loading Credentials")
         try:
-            with open("creds.json", "r") as f:
+            with open(str(default_creds_path), "r") as f:
                 creds = json.load(f)
                 if "delete_this" in creds.keys():
                     raise FileNotFoundError()
@@ -51,7 +53,7 @@ class Bastion:
             td["target-port"] = "22"
             td["ttl"] = "1800"
 
-            creds_path = Path("creds.json").resolve().absolute()
+            creds_path = default_creds_path
             if not creds_path.exists():
                 with open(str(creds_path), "w") as f:
                     json.dump(td, f, indent=4)
