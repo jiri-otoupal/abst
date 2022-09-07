@@ -110,7 +110,7 @@ class Bastion:
 
 # Press the green button in the gutter to run the script.
 def main():
-    print("Welcome to Auto Bastion")
+    cli()
 
 
 @click.group()
