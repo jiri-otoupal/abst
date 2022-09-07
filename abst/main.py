@@ -38,8 +38,25 @@ class Bastion:
         try:
             with open("creds.json", "r") as f:
                 creds = json.load(f)
+                if "delete_this" in creds.keys():
+                    raise FileNotFoundError()
         except FileNotFoundError:
-            print("Please create 'creds.json' for this to work")
+            td = dict()
+            td["delete_this"] = "Delete This Key after you Fill this file with your credentials"
+            td["host"] = "some host"
+            td["bastion-id"] = "ocid1.bastion......"
+            td["default-name"] = "My super cool name"
+            td["ssh-pub-path"] = "~/.ssh/id_rsa.pub"
+            td["target-ip"] = "0.0.0.0"
+            td["target-port"] = "22"
+            td["ttl"] = "1800"
+
+            creds_path = Path("creds.json").resolve().absolute()
+            if not creds_path.exists():
+                with open(str(creds_path), "w") as f:
+                    json.dump(td, f, indent=4)
+
+            print(f"Please fill 'creds.json' in {creds_path} for this to work")
             exit(1)
 
         host = creds["host"]
