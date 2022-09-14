@@ -3,6 +3,7 @@ import json
 import logging
 import signal
 import subprocess
+from json import JSONDecodeError
 from pathlib import Path
 from time import sleep
 
@@ -12,6 +13,7 @@ default_creds_path = (Path().home().resolve() / "creds.json").absolute()
 
 
 class Bastion:
+    connected: bool = False
     active_tunnel: subprocess.Popen = None
     response: dict = None
 
@@ -19,7 +21,11 @@ class Bastion:
     def get_bastion_state(cls) -> dict:
         bastion_id = cls.response["data"]["id"]
         get_state_arg_str = f"oci bastion session get --session-id {bastion_id}"
-        return json.loads(subprocess.check_output(get_state_arg_str.split()))
+        res = subprocess.check_output(get_state_arg_str.split())
+        try:
+            return json.loads(res)
+        except JSONDecodeError:
+            print(f"Failed to decode json: {res}")
 
     @classmethod
     def kill_bastion(cls, a=None, b=None, c=None):
@@ -45,7 +51,7 @@ class Bastion:
         except FileNotFoundError:
             td = dict()
             td["delete_this"] = "Delete This Key after you Fill this file with your credentials"
-            td["host"] = "some host"
+            td["host"] = "host.bastion.us-phoenix-1.oci.oraclecloud.com"
             td["bastion-id"] = "ocid1.bastion......"
             td["default-name"] = "My super cool name"
             td["ssh-pub-path"] = "~/.ssh/id_rsa.pub"
@@ -58,7 +64,9 @@ class Bastion:
                 with open(str(creds_path), "w") as f:
                     json.dump(td, f, indent=4)
 
-            print(f"Please fill 'creds.json' in {creds_path} for this to work")
+            print(
+                f"Sample credentials generated, please fill 'creds.json' in {creds_path} with "
+                f"your credentials for this to work")
             exit(1)
 
         host = creds["host"]
@@ -79,13 +87,18 @@ class Bastion:
                           f" --session-ttl {ttl}"
         print("Creating Session")
         res = subprocess.check_output(bastion_arg_str.split(), shell=True)
-        response = json.loads(res)
-        cls.response = response
+        try:
+            cls.response = response = json.loads(res)
+        except JSONDecodeError:
+            print(f"Failed to decode json: {res}")
+
         bid = response.get("data", None).get("id", None)
 
         if bid is None:
             print(f"Failed to Create Bastion with response {response}")
             return
+        else:
+            print(f"Created Session with id {bid}")
 
         ssh_tunnel_arg_str = f"ssh  -N -L {port}:{ip}:{port} -p 22 {bid}@{host} -v"
         print("Waiting for bastion to initialize")
@@ -97,14 +110,30 @@ class Bastion:
 
         print("Bastion initialized")
         print("Initializing SSH Tunnel")
-        status = cls.ssh_tunnel(ssh_tunnel_arg_str)
+        cls.ssh_tunnel(ssh_tunnel_arg_str)
 
-        for i in range(1, 3):
-            if not status:
-                print(f"Trying another time {i}/3")
-                status = cls.ssh_tunnel(ssh_tunnel_arg_str)
-            else:
-                break
+        while status := (sdata := cls.get_bastion_state()["data"])["lifecycle-state"] == "ACTIVE":
+            for i in range(1, 3):
+                if not status:
+                    print(f"Trying another time {i}/3")
+                    status = cls.ssh_tunnel(ssh_tunnel_arg_str)
+                else:
+                    break
+            if not cls.connected and status:
+                print(f"Checking for idle termination, Bastion Active? {status}")
+                created_time = datetime.datetime.fromisoformat(sdata["time-created"]).astimezone(
+                    datetime.timezone.utc)
+                now_time = datetime.datetime.now(datetime.timezone.utc)
+                ttl_now = now_time - created_time
+                ttl_max = sdata["session-ttl-in-seconds"]
+                delta = ttl_max - ttl_now.seconds
+                if delta > 0:
+                    print(
+                        f"Current session {delta} seconds remaining ({ttl_now}) "
+                        f"reconnecting")
+                    cls.ssh_tunnel(ssh_tunnel_arg_str)
+                else:
+                    print("Bastion Session TTL run out, please start create new one")
 
         print("SSH Tunnel Terminated")
         Bastion.kill_bastion()
@@ -117,13 +146,15 @@ class Bastion:
         while not p.poll():
             line = p.stdout.readline().decode("utf-8").replace("\r", "").replace("", "")
             if "Permission denied" in line:
+                cls.connected = False
                 return False
             if "pledge: network" in line:
                 print("Success !")
                 print(f"SSH Tunnel Running from {datetime.datetime.now()}")
+                cls.connected = True
             if line:
                 logging.debug(line)
-
+        cls.connected = False
         return True
 
 
