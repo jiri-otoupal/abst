@@ -7,6 +7,8 @@ from json import JSONDecodeError
 from pathlib import Path
 from time import sleep
 
+import rich
+
 from abst.config import default_creds_path
 
 
@@ -24,7 +26,7 @@ class Bastion:
         try:
             return json.loads(res)
         except JSONDecodeError:
-            print(f"Failed to decode json: {res}")
+            rich.print(f"Failed to decode json: '{res}'")
 
     @classmethod
     def kill_bastion(cls, a=None, b=None, c=None):
@@ -34,7 +36,7 @@ class Bastion:
             sess_id = cls.response["data"]["id"]
             print("Cleaning")
             out = cls.delete_bastion_session(sess_id, Bastion.shell)
-            print(out)
+            rich.print(out)
             print("Removed Session")
         except Exception:
             print("Looks like Bastion is already deleted")
@@ -61,7 +63,7 @@ class Bastion:
 
             creds_path = cls.write_creds_json(td)
 
-            print(
+            rich.print(
                 f"Sample credentials generated, please fill 'creds.json' in {creds_path} with "
                 f"your credentials for this to work")
             exit(1)
@@ -79,10 +81,10 @@ class Bastion:
         bid = response.get("data", None).get("id", None)
 
         if bid is None:
-            print(f"Failed to Create Bastion with response {response}")
+            rich.print(f"Failed to Create Bastion with response '{response}'")
             return
         else:
-            print(f"Created Session with id {bid}")
+            rich.print(f"Created Session with id '{bid}'")
 
         ssh_tunnel_arg_str = f"ssh  -N -L {port}:{ip}:{port} -p 22 {bid}@{host} -v"
         print("Waiting for bastion to initialize")
@@ -97,7 +99,11 @@ class Bastion:
         cls.run_ssh_tunnel(ssh_tunnel_arg_str, shell)
 
         while status := (sdata := cls.get_bastion_state()["data"])["lifecycle-state"] == "ACTIVE":
-            cls.connect_till_deleted(sdata, ssh_tunnel_arg_str, status, shell)
+            deleted = cls.connect_till_deleted(sdata, ssh_tunnel_arg_str, status, shell)
+
+            if deleted:
+                print("Bastion Session got deleted")
+                return
 
         print("SSH Tunnel Terminated")
         Bastion.kill_bastion()
@@ -130,12 +136,12 @@ class Bastion:
         """
         for i in range(1, 3):
             if not status:
-                print(f"Trying another time {i}/3")
+                rich.print(f"Trying another time {i}/3")
                 status = cls.run_ssh_tunnel(ssh_tunnel_arg_str, shell)
             else:
                 break
         if not cls.connected and status:
-            print(f"Checking for idle termination, Bastion Active? {status}")
+            rich.print(f"Checking for idle termination, Bastion Active? {status}")
             created_time = datetime.datetime.fromisoformat(sdata["time-created"]).astimezone(
                 datetime.timezone.utc)
             now_time = datetime.datetime.now(datetime.timezone.utc)
@@ -147,8 +153,10 @@ class Bastion:
                     f"Current session {delta} seconds remaining ({ttl_now}) "
                     f"reconnecting")
                 cls.run_ssh_tunnel(ssh_tunnel_arg_str, shell)
+                return False
             else:
                 print("Bastion Session TTL run out, please start create new one")
+                return True
 
     @classmethod
     def create_bastion_session(cls, bastion_id, ip, name, port, ssh_path, ttl, shell):
@@ -206,7 +214,7 @@ class Bastion:
                 return False
             if "pledge: network" in line:
                 print("Success !")
-                print(f"SSH Tunnel Running from {datetime.datetime.now()}")
+                rich.print(f"SSH Tunnel Running from {datetime.datetime.now()}")
                 cls.connected = True
             if line:
                 logging.debug(line)

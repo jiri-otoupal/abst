@@ -1,5 +1,6 @@
 import os
 import signal
+from time import sleep
 
 import click
 import rich
@@ -95,7 +96,12 @@ def fullauto(shell):
     while True:
         print("Creating New Bastion Session")
         Bastion.create_bastion(shell=shell)
-        print("Bastion session deprecated")
+
+        Bastion.connected = False
+        Bastion.active_tunnel = None
+        Bastion.response = None
+
+        sleep(1)
 
 
 if __name__ == '__main__':
