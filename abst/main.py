@@ -57,6 +57,7 @@ def fill():
 
 @cli.command("clean")
 def clean():
+    s = str(default_creds_path)
     try:
         confirm = inquirer.confirm(
             "Do you really want to Delete all Creds file ? All of credentials will be lost")
@@ -65,7 +66,7 @@ def clean():
             exit(0)
 
         rich.print("[red]Deleting all of the credentials[/red]")
-        s = str(default_creds_path.absolute())
+
         os.remove(s)
     except PermissionError:
         print("Do not have permission to remove, or process is using this file.")
@@ -78,20 +79,22 @@ def create():
 
 
 @create.command("single")
-def single():
+@click.option("--shell", is_flag=True, default=False)
+def single(shell):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
-    Bastion.create_bastion()
+    Bastion.create_bastion(shell=shell)
 
 
 @create.command("fullauto")
-def fullauto():
+@click.option("--shell", is_flag=True, default=False)
+def fullauto(shell):
     """Creates and connects to bastion sessions
      automatically until terminated"""
 
     while True:
         print("Creating New Bastion Session")
-        Bastion.create_bastion()
+        Bastion.create_bastion(shell=shell)
         print("Bastion session deprecated")
 
 
@@ -99,4 +102,3 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, Bastion.kill_bastion)
     signal.signal(signal.SIGTERM, Bastion.kill_bastion)
     cli()
-

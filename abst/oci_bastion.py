@@ -11,6 +11,7 @@ from abst.config import default_creds_path
 
 
 class Bastion:
+    shell: bool = False
     connected: bool = False
     active_tunnel: subprocess.Popen = None
     response: dict = None
@@ -32,24 +33,27 @@ class Bastion:
             cls.active_tunnel.send_signal(signal.SIGTERM)
             sess_id = cls.response["data"]["id"]
             print("Cleaning")
-            out = cls.delete_bastion_session(sess_id)
+            out = cls.delete_bastion_session(sess_id, Bastion.shell)
             print(out)
             print("Removed Session")
-        except:
+        except Exception:
             print("Looks like Bastion is already deleted")
         finally:
             exit(0)
 
     @classmethod
-    def delete_bastion_session(cls, sess_id):
+    def delete_bastion_session(cls, sess_id, shell):
         print("Removing Bastion session")
         bastion_kill_arg_str = f"oci bastion session delete --session-id {sess_id}  --force"
-        out = subprocess.check_output(bastion_kill_arg_str.split(), shell=True).decode("utf-8")
+        out = subprocess.check_output(bastion_kill_arg_str.split(), shell=shell).decode("utf-8")
         return out
 
     @classmethod
-    def create_bastion(cls):
+    def create_bastion(cls, shell: bool = False):
+        Bastion.shell = shell
         print("Loading Credentials")
+        creds = None
+
         try:
             creds = cls.load_creds_json()
         except FileNotFoundError:
@@ -64,7 +68,9 @@ class Bastion:
 
         bastion_id, host, ip, name, port, ssh_path, ttl = cls.extract_creds(creds)
 
-        res = cls.create_bastion_session(bastion_id, ip, name, port, ssh_path, ttl)
+        res = cls.create_bastion_session(bastion_id, ip, name, port, ssh_path, ttl, shell)
+        response = None
+
         try:
             cls.response = response = json.loads(res)
         except JSONDecodeError:
@@ -88,10 +94,10 @@ class Bastion:
 
         print("Bastion initialized")
         print("Initializing SSH Tunnel")
-        cls.ssh_tunnel(ssh_tunnel_arg_str)
+        cls.run_ssh_tunnel(ssh_tunnel_arg_str, shell)
 
         while status := (sdata := cls.get_bastion_state()["data"])["lifecycle-state"] == "ACTIVE":
-            cls.connect_till_deleted(sdata, ssh_tunnel_arg_str, status)
+            cls.connect_till_deleted(sdata, ssh_tunnel_arg_str, status, shell)
 
         print("SSH Tunnel Terminated")
         Bastion.kill_bastion()
@@ -113,9 +119,10 @@ class Bastion:
         return creds_path
 
     @classmethod
-    def connect_till_deleted(cls, sdata, ssh_tunnel_arg_str, status):
+    def connect_till_deleted(cls, sdata, ssh_tunnel_arg_str, status, shell):
         """
         Will connect to session and reconnect every time it disconnect until session is deleted
+        :param shell: If use shell environment (can have different impacts on MAC and LINUX)
         :param sdata:
         :param ssh_tunnel_arg_str:
         :param status:
@@ -124,7 +131,7 @@ class Bastion:
         for i in range(1, 3):
             if not status:
                 print(f"Trying another time {i}/3")
-                status = cls.ssh_tunnel(ssh_tunnel_arg_str)
+                status = cls.run_ssh_tunnel(ssh_tunnel_arg_str, shell)
             else:
                 break
         if not cls.connected and status:
@@ -139,12 +146,12 @@ class Bastion:
                 print(
                     f"Current session {delta} seconds remaining ({ttl_now}) "
                     f"reconnecting")
-                cls.ssh_tunnel(ssh_tunnel_arg_str)
+                cls.run_ssh_tunnel(ssh_tunnel_arg_str, shell)
             else:
                 print("Bastion Session TTL run out, please start create new one")
 
     @classmethod
-    def create_bastion_session(cls, bastion_id, ip, name, port, ssh_path, ttl):
+    def create_bastion_session(cls, bastion_id, ip, name, port, ssh_path, ttl, shell):
         bastion_arg_str = f"oci bastion session create-port-forwarding " \
                           f"--bastion-id {bastion_id} " \
                           f"--display-name {name} " \
@@ -154,7 +161,7 @@ class Bastion:
                           f"--target-port {port}" \
                           f" --session-ttl {ttl}"
         print("Creating Session")
-        res = subprocess.check_output(bastion_arg_str.split(), shell=True)
+        res = subprocess.check_output(bastion_arg_str.split(), shell=shell)
         return res
 
     @classmethod
@@ -182,9 +189,15 @@ class Bastion:
         return td
 
     @classmethod
-    def ssh_tunnel(cls, ssh_tunnel_arg_str):
+    def run_ssh_tunnel(cls, ssh_tunnel_arg_str, shell):
+        """
+
+        :param ssh_tunnel_arg_str: String for ssh tunnel creation
+        :param shell: If use shell environment (can have different impacts on MAC and LINUX)
+        :return:
+        """
         p = subprocess.Popen(ssh_tunnel_arg_str.split(), stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT, shell=True)
+                             stderr=subprocess.STDOUT, shell=shell)
         cls.active_tunnel = p
         while not p.poll():
             line = p.stdout.readline().decode("utf-8").replace("\r", "").replace("", "")
