@@ -76,7 +76,8 @@ def clean():
 
 @cli.group()
 def create():
-    pass
+    signal.signal(signal.SIGINT, Bastion.kill_bastion)
+    signal.signal(signal.SIGTERM, Bastion.kill_bastion)
 
 
 @create.command("single")

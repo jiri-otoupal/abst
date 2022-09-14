@@ -55,30 +55,11 @@ class Bastion:
         Bastion.shell = shell
         print("Loading Credentials")
         creds = None
+        creds = cls.handle_creds_load(creds)
 
-        try:
-            creds = cls.load_creds_json()
-        except FileNotFoundError:
-            td = cls.generate_sample_dict()
+        host, ip, port, res = cls.create_bastion_session_wrapper(creds, shell)
 
-            creds_path = cls.write_creds_json(td)
-
-            rich.print(
-                f"Sample credentials generated, please fill 'creds.json' in {creds_path} with "
-                f"your credentials for this to work")
-            exit(1)
-
-        bastion_id, host, ip, name, port, ssh_path, ttl = cls.extract_creds(creds)
-
-        res = cls.create_bastion_session(bastion_id, ip, name, port, ssh_path, ttl, shell)
-        response = None
-
-        try:
-            cls.response = response = json.loads(res)
-        except JSONDecodeError:
-            print(f"Failed to decode json: {res}")
-
-        bid = response.get("data", None).get("id", None)
+        bid, response = cls.load_response(res)
 
         if bid is None:
             rich.print(f"Failed to Create Bastion with response '{response}'")
@@ -86,17 +67,11 @@ class Bastion:
         else:
             rich.print(f"Created Session with id '{bid}'")
 
-        ssh_tunnel_arg_str = f"ssh  -N -L {port}:{ip}:{port} -p 22 {bid}@{host} -v"
-        print("Waiting for bastion to initialize")
-
-        while cls.get_bastion_state()["data"]["lifecycle-state"] != "ACTIVE":
-            sleep(1)
+        cls.wait_for_prepared()
 
         sleep(1)  # Precaution
 
-        print("Bastion initialized")
-        print("Initializing SSH Tunnel")
-        cls.run_ssh_tunnel(ssh_tunnel_arg_str, shell)
+        ssh_tunnel_arg_str = cls.run_ssh_tunnel_wrapper(bid, host, ip, port, shell)
 
         while status := (sdata := cls.get_bastion_state()["data"])["lifecycle-state"] == "ACTIVE":
             deleted = cls.connect_till_deleted(sdata, ssh_tunnel_arg_str, status, shell)
@@ -109,6 +84,51 @@ class Bastion:
         Bastion.kill_bastion()
 
     @classmethod
+    def run_ssh_tunnel_wrapper(cls, bid, host, ip, port, shell):
+        print("Bastion initialized")
+        print("Initializing SSH Tunnel")
+        ssh_tunnel_arg_str = f"ssh  -N -L {port}:{ip}:{port} -p 22 {bid}@{host} -v"
+        cls.run_ssh_tunnel(ssh_tunnel_arg_str, shell)
+        return ssh_tunnel_arg_str
+
+    @classmethod
+    def wait_for_prepared(cls):
+        print("Waiting for Bastion to initialize")
+        while cls.get_bastion_state()["data"]["lifecycle-state"] != "ACTIVE":
+            sleep(1)
+
+    @classmethod
+    def load_response(cls, res):
+        response = None
+        try:
+            cls.response = response = json.loads(res)
+        except JSONDecodeError:
+            print(f"Failed to decode json: {res}")
+        bid = response.get("data", None).get("id", None)
+        return bid, response
+
+    @classmethod
+    def create_bastion_session_wrapper(cls, creds, shell):
+        bastion_id, host, ip, name, port, ssh_path, ttl = cls.extract_creds(creds)
+        res = cls.create_bastion_session(bastion_id, ip, name, port, ssh_path, ttl, shell)
+        return host, ip, port, res
+
+    @classmethod
+    def handle_creds_load(cls, creds):
+        try:
+            creds = cls.load_creds_json()
+        except FileNotFoundError:
+            td = cls.generate_sample_dict()
+
+            creds_path = cls.write_creds_json(td)
+
+            rich.print(
+                f"Sample credentials generated, please fill 'creds.json' in {creds_path} with "
+                f"your credentials for this to work")
+            exit(1)
+        return creds
+
+    @classmethod
     def load_creds_json(cls) -> dict:
         with open(str(default_creds_path), "r") as f:
             creds = json.load(f)
@@ -119,9 +139,8 @@ class Bastion:
     @classmethod
     def write_creds_json(cls, td: dict):
         creds_path = default_creds_path
-        if not creds_path.exists():
-            with open(str(creds_path), "w") as f:
-                json.dump(td, f, indent=4)
+        with open(str(creds_path), "w") as f:
+            json.dump(td, f, indent=4)
         return creds_path
 
     @classmethod
