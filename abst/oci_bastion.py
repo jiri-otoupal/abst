@@ -196,7 +196,7 @@ class Bastion:
         host = creds["host"]
         bastion_id = creds["bastion-id"]
         name = creds["default-name"]
-        ssh_path = str(Path(creds["ssh-pub-path"]).resolve().absolute())
+        ssh_path = str(Path(creds["ssh-pub-path"]).resolve())
         ip = creds["target-ip"]
         port = creds["target-port"]
         ttl = creds["ttl"]
