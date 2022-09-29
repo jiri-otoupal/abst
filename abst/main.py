@@ -36,13 +36,13 @@ def generate():
 
 @json.command("fill")
 def fill():
-    print("Please fill field one by one as displayed")
-    n_dict = dict()
-
     if not default_creds_path.exists():
         print("Generating sample Creds file")
         td = Bastion.generate_sample_dict()
         Bastion.write_creds_json(td)
+
+    print("Please fill field one by one as displayed")
+    n_dict = dict()
 
     creds_json_ro = Bastion.load_creds_json()
     for key, value in creds_json_ro.items():

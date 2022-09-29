@@ -196,7 +196,7 @@ class Bastion:
         host = creds["host"]
         bastion_id = creds["bastion-id"]
         name = creds["default-name"]
-        ssh_path = str(Path(creds["ssh-pub-path"]).resolve())
+        ssh_path = str(Path(creds["ssh-pub-path"]).resolve().expanduser())
         ip = creds["target-ip"]
         port = creds["target-port"]
         ttl = creds["ttl"]
@@ -205,7 +205,7 @@ class Bastion:
     @classmethod
     def generate_sample_dict(cls):
         td = dict()
-        td["delete_this"] = "Delete This Key after you Fill this file with your credentials"
+        td["delete_this"] = "Delete This Line after you Fill this file with your credentials"
         td["host"] = "host.bastion.us-phoenix-1.oci.oraclecloud.com"
         td["bastion-id"] = "ocid1.bastion......"
         td["default-name"] = "My super cool name"
