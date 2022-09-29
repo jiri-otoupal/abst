@@ -20,12 +20,12 @@ def cli():
     pass
 
 
-@cli.group()
-def json():
+@cli.group(help="Group of commands for operations with config")
+def config():
     pass
 
 
-@json.command("generate")
+@config.command("generate", help="Will generate sample json and overwrite changes")
 def generate():
     td = Bastion.generate_sample_dict()
     creds_path = Bastion.write_creds_json(td)
@@ -34,7 +34,7 @@ def generate():
         f"your credentials for this to work, you can use 'abst json fill'")
 
 
-@json.command("fill")
+@config.command("fill", help="Fills Json config with credentials you enter interactively")
 def fill():
     if not default_creds_path.exists():
         print("Generating sample Creds file")
@@ -46,7 +46,8 @@ def fill():
 
     creds_json_ro = Bastion.load_creds_json()
     for key, value in creds_json_ro.items():
-        n_dict[key] = inquirer.text(message=f"{key.capitalize()}:", default=value).execute()
+        n_dict[key] = inquirer.text(message=f"{key.capitalize()}:",
+                                    default=value).execute()
     rich.print("\n[red]New json looks like this:[/red]")
     rich.print_json(data=n_dict)
     if inquirer.confirm(message="Write New Json ?", default=False).execute():
@@ -56,12 +57,16 @@ def fill():
         rich.print("[red]Fill interrupted, nothing changed[/red]")
 
 
-@cli.command("clean")
+@cli.command("clean", help="Cleans all credentials created by abst")
 def clean():
+    """
+
+    """
     s = str(default_creds_path)
     try:
         confirm = inquirer.confirm(
-            "Do you really want to Delete all Creds file ? All of credentials will be lost")
+            "Do you really want to Delete all Creds file ? All of credentials will be "
+            "lost")
         if not confirm:
             rich.print("[green]Cancelling, nothing changed[/green]")
             exit(0)
@@ -74,13 +79,15 @@ def clean():
         print(f"Please delete manually in {s}")
 
 
-@cli.group()
+@cli.group(help="Group of commands for creating Bastion sessions")
 def create():
     signal.signal(signal.SIGINT, Bastion.kill_bastion)
     signal.signal(signal.SIGTERM, Bastion.kill_bastion)
 
 
-@create.command("single")
+@create.command("single",
+                help="Creates only one bastion session and keeps reconnecting until"
+                     " its deleted, does not create any more Bastion sessions")
 @click.option("--shell", is_flag=True, default=False)
 def single(shell):
     """Creates only one bastion session
@@ -88,7 +95,9 @@ def single(shell):
     Bastion.create_bastion(shell=shell)
 
 
-@create.command("fullauto")
+@create.command("fullauto",
+                help="Creates and connects to Bastion session indefinitely until "
+                     "terminated by user")
 @click.option("--shell", is_flag=True, default=False)
 def fullauto(shell):
     """Creates and connects to bastion sessions
