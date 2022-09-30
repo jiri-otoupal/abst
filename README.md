@@ -55,15 +55,15 @@ pip3 install abst
 
 ## How to set up
 
-* Use `abst json fill` to fill your credentials for usage, you can find all the credentials on
+* Use `abst config fill` to fill your credentials for usage, you can find all the credentials on
   cloud provider site
 
 ## Usage
 
 ###### Both commands do automatic reconnect on idle SSH Tunnel termination
 
-* `abst create single` for single bastion session with persisting SSH connection
-* `abst create fullauto` for automatic Bastion session creation once deleted, will keep your
+* `abst create forward/managed single` for single bastion session with persisting SSH connection
+* `abst create forward/managed fullauto` for automatic Bastion session creation once deleted, will keep your
   connection alive till you kill this script
 * `abst clean` for removal all the saved credentials
 
