@@ -17,11 +17,31 @@ No specific requirements here, whatever runs Python
 
 * **Oracle Cloud**
 
-#### Python
+## Requirements
+
+### Python
 
 * 3.7+
 
+### OCI CLI
+
+This package needs oci cli installed to function
+Tutorial on Installation
+
+* https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm
+
+#### Configuration of OCI CLI
+
+* Add key in your Oracle cloud profile
+* Generate new key
+* Copy configuration file generated in your profile to `~/.oci/config`
+* Replace path of your `*.pem` key on line with **#TODO**
+
+
 ## Installing
+
+### MacOS
+On most MacOS machines there is `pip3` instead of `pip` **use pip3 for install**
 
 Install and update using [pip](https://pip.pypa.io/en/stable/quickstart/):
 
@@ -39,11 +59,12 @@ pip3 install abst
   cloud provider site
 
 ## Usage
+
 ###### Both commands do automatic reconnect on idle SSH Tunnel termination
 
 * `abst create single` for single bastion session with persisting SSH connection
 * `abst create fullauto` for automatic Bastion session creation once deleted, will keep your
-connection alive till you kill this script
+  connection alive till you kill this script
 * `abst clean` for removal all the saved credentials
 
 <hr>
