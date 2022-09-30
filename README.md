@@ -68,7 +68,7 @@ pip3 install abst
 * `abst clean` for removal all the saved credentials
 
 <hr>
-Did I made your life less painfull ? 
+Did I made your life less painful ? 
 <br>
 <br>
 Support my coffee addiction ;)
