@@ -1,3 +1,4 @@
+import logging
 import os
 import signal
 from time import sleep
@@ -5,6 +6,7 @@ from time import sleep
 import click
 import rich
 from InquirerPy import inquirer
+from rich.logging import RichHandler
 
 from abst.config import default_creds_path
 from abst.oci_bastion import Bastion
@@ -12,6 +14,12 @@ from abst.oci_bastion import Bastion
 
 # Press the green button in the gutter to run the script.
 def main():
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[RichHandler()]
+    )
     cli()
 
 
@@ -27,6 +35,7 @@ def config():
 
 @config.command("generate", help="Will generate sample json and overwrite changes")
 def generate():
+    Bastion.create_default_location()
     td = Bastion.generate_sample_dict()
     creds_path = Bastion.write_creds_json(td)
     print(
@@ -38,7 +47,8 @@ def generate():
 def fill():
     if not default_creds_path.exists():
         print("Generating sample Creds file")
-        td = Bastion.generate_sample_dict()
+        Bastion.create_default_location()
+        td = Bastion.generate_sample_dict(False)
         Bastion.write_creds_json(td)
 
     print("Please fill field one by one as displayed")
@@ -85,19 +95,29 @@ def create():
     signal.signal(signal.SIGTERM, Bastion.kill_bastion)
 
 
-@create.command("single",
-                help="Creates only one bastion session and keeps reconnecting until"
-                     " its deleted, does not create any more Bastion sessions")
+@create.group(help="Group of commands for Creating Port Forward Sessions")
+def forward():
+    pass
+
+
+@create.group(help="Group of commands for Creating Managed SSH Sessions")
+def managed():
+    pass
+
+
+@forward.command("single",
+                 help="Creates only one bastion session and keeps reconnecting until"
+                      " its deleted, does not create any more Bastion sessions")
 @click.option("--shell", is_flag=True, default=False)
 def single(shell):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
-    Bastion.create_bastion(shell=shell)
+    Bastion.create_forward_loop(shell=shell)
 
 
-@create.command("fullauto",
-                help="Creates and connects to Bastion session indefinitely until "
-                     "terminated by user")
+@forward.command("fullauto",
+                 help="Creates and connects to Bastion session indefinitely until "
+                      "terminated by user")
 @click.option("--shell", is_flag=True, default=False)
 def fullauto(shell):
     """Creates and connects to bastion sessions
@@ -105,7 +125,36 @@ def fullauto(shell):
 
     while True:
         print("Creating New Bastion Session")
-        Bastion.create_bastion(shell=shell)
+        Bastion.create_forward_loop(shell=shell)
+
+        Bastion.connected = False
+        Bastion.active_tunnel = None
+        Bastion.response = None
+
+        sleep(1)
+
+
+@managed.command("single",
+                 help="Creates only one bastion session and keeps reconnecting until"
+                      " its deleted, does not create any more Bastion sessions")
+@click.option("--shell", is_flag=True, default=False)
+def single(shell):
+    """Creates only one bastion session
+     ,connects and reconnects until its ttl runs out"""
+    Bastion.create_managed_loop(shell=shell)
+
+
+@managed.command("fullauto",
+                 help="Creates and connects to Bastion session indefinitely until "
+                      "terminated by user")
+@click.option("--shell", is_flag=True, default=False)
+def fullauto(shell):
+    """Creates and connects to bastion sessions
+     automatically until terminated"""
+
+    while True:
+        print("Creating New Bastion Session")
+        Bastion.create_managed_loop(shell=shell)
 
         Bastion.connected = False
         Bastion.active_tunnel = None

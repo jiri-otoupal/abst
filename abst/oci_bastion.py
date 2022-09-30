@@ -53,13 +53,56 @@ class Bastion:
         return out
 
     @classmethod
-    def create_bastion(cls, shell: bool = False):
+    def create_managed_loop(cls, shell: bool = False):
         Bastion.shell = shell
         print("Loading Credentials")
         creds = cls.handle_creds_load()
 
-        host, ip, port, res = cls.create_bastion_forward_port_session_wrapper(creds,
-                                                                              shell)
+        res = cls.create_bastion_ssh_session_managed(creds, shell)
+
+        bid, response = cls.load_response(res)
+
+        if bid is None:
+            rich.print(f"Failed to Create Bastion with response '{response}'")
+            return
+        else:
+            rich.print(
+                f"Created Session with id '{bid}' on Bastion '{response['data']['bastion-name']}'")
+
+        rich.print("Auto resolving target details from response")
+        host = creds["host"]
+        target_details = response["data"]["target-resource-details"]
+        ip = target_details["target-resource-private-ip-address"]
+        port = target_details["target-resource-port"]
+
+        cls.wait_for_prepared()
+
+        sleep(1)  # Precaution
+
+        ssh_tunnel_args = cls.run_ssh_tunnel_managed_session(bid, host,
+                                                             creds["private-key-path"],
+                                                             creds["resource-os-username"],
+                                                             ip, port,
+                                                             shell)
+
+        while status := (sdata := cls.get_bastion_state()["data"])["lifecycle-state"] == "ACTIVE":
+            deleted = cls.connect_till_deleted(sdata, ssh_tunnel_args, status, shell, True)
+
+            if deleted:
+                print("Bastion Session got deleted")
+                return
+
+        print("SSH Tunnel Terminated")
+        Bastion.kill_bastion()
+
+    @classmethod
+    def create_forward_loop(cls, shell: bool = False):
+        Bastion.shell = shell
+        print("Loading Credentials")
+        creds = cls.handle_creds_load()
+
+        host, ip, port, res = cls.create_bastion_forward_port_session(creds,
+                                                                      shell)
 
         bid, response = cls.load_response(res)
 
@@ -73,8 +116,8 @@ class Bastion:
 
         sleep(1)  # Precaution
 
-        ssh_tunnel_arg_str = cls.run_ssh_tunnel_wrapper_port_forward(bid, host, ip, port,
-                                                                     shell)
+        ssh_tunnel_arg_str = cls.run_ssh_tunnel_port_forward(bid, host, ip, port,
+                                                             shell)
 
         while status := (sdata := cls.get_bastion_state()["data"])[
                             "lifecycle-state"] == "ACTIVE":
@@ -88,24 +131,24 @@ class Bastion:
         Bastion.kill_bastion()
 
     @classmethod
-    def run_ssh_tunnel_wrapper_managed_session(cls, bid, host, priv_key_path, username,
-                                               ip, port,
-                                               shell):
+    def run_ssh_tunnel_managed_session(cls, bid, host, priv_key_path, username,
+                                       ip, port,
+                                       shell):
         print("Bastion initialized")
         print("Initializing SSH Tunnel")
-        ssh_tunnel_arg_str = f'ssh -i {priv_key_path} ' \
-                             f'-o ProxyCommand="ssh -i {priv_key_path} ' \
-                             f'-W %h:%p -p {port} ' \
-                             f'{bid}@{host}" -p {port} {username}@{ip} -v'
-        cls.run_ssh_tunnel_managed_ssh(ssh_tunnel_arg_str, shell)
-        return ssh_tunnel_arg_str
+
+        ssh_tunnel_args = [f"ssh", "-i", f"{priv_key_path}", "-o",
+                           f"ProxyCommand='ssh -i {priv_key_path} -W %h:%p -p {port} {bid}@{host}'",
+                           "-p", f"{port}", f"{username}@{ip}", "-v"]
+        cls.__run_ssh_tunnel(ssh_tunnel_args, shell, already_split=True)
+        return ssh_tunnel_args
 
     @classmethod
-    def run_ssh_tunnel_wrapper_port_forward(cls, bid, host, ip, port, shell):
+    def run_ssh_tunnel_port_forward(cls, bid, host, ip, port, shell):
         print("Bastion initialized")
         print("Initializing SSH Tunnel")
         ssh_tunnel_arg_str = f"ssh  -N -L {port}:{ip}:{port} -p 22 {bid}@{host} -v"
-        cls.run_ssh_tunnel_port_forward(ssh_tunnel_arg_str, shell)
+        cls.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
         return ssh_tunnel_arg_str
 
     @classmethod
@@ -125,29 +168,27 @@ class Bastion:
         return bid, response
 
     @classmethod
-    def create_bastion_forward_port_session_wrapper(cls, creds, shell):
+    def create_bastion_forward_port_session(cls, creds, shell):
         ssh_key_path = cls.get_ssh_pub_key_path(creds)
-        res = cls.create_bastion_session_port_forward(creds["bastion-id"],
-                                                      creds["target-ip"],
-                                                      creds["default-name"],
-                                                      creds["target-port"],
-                                                      ssh_key_path,
-                                                      creds["ttl"], shell)
+        res = cls.__create_bastion_session_port_forward(creds["bastion-id"],
+                                                        creds["target-ip"],
+                                                        creds["default-name"],
+                                                        creds["target-port"],
+                                                        ssh_key_path,
+                                                        creds["ttl"], shell)
         return creds["host"], creds["target-ip"], creds["target-port"], res
 
     @classmethod
-    def create_bastion_managed_ssh_session_wrapper(cls, creds, shell):
+    def create_bastion_ssh_session_managed(cls, creds, shell):
         ssh_key_path = cls.get_ssh_pub_key_path(creds)
-        target_ip = None if "0.0.0.0" in creds["target-ip"] else creds["target-ip"]
-        res = cls.create_bastion_session_managed_ssh(creds["bastion-id"],
-                                                     creds["resource-id"],
-                                                     creds["default-name"],
-                                                     creds["resource-os-username"],
-                                                     creds["target-port"],
-                                                     ssh_key_path,
-                                                     creds["ttl"], shell,
-                                                     target_ip)
-        return creds["host"], creds["resource-id"], creds["resource-os-username"], res
+        res = cls.__create_bastion_ssh_session_managed(creds["bastion-id"],
+                                                       creds["resource-id"],
+                                                       creds["default-name"],
+                                                       creds["resource-os-username"],
+                                                       ssh_key_path,
+                                                       creds["ttl"], shell
+                                                       )
+        return res
 
     @classmethod
     def handle_creds_load(cls):
@@ -169,8 +210,12 @@ class Bastion:
         with open(str(default_creds_path), "r") as f:
             creds = json.load(f)
             if "delete_this" in creds.keys():
-                raise FileNotFoundError()
+                raise Exception("Delete This Tag not removed! Please Remove Before continue")
         return creds
+
+    @classmethod
+    def create_default_location(cls):
+        Path(default_creds_path.parent).mkdir(exist_ok=True)
 
     @classmethod
     def write_creds_json(cls, td: dict):
@@ -180,7 +225,7 @@ class Bastion:
         return creds_path
 
     @classmethod
-    def connect_till_deleted(cls, sdata, ssh_tunnel_arg_str, status, shell):
+    def connect_till_deleted(cls, sdata, ssh_tunnel_arg_str, status, shell, already_split=False):
         """
         Will connect to session and reconnect every time it disconnect until session is
         deleted :param shell: If use shell environment (can have different impacts on
@@ -189,7 +234,7 @@ class Bastion:
         for i in range(1, 3):
             if not status:
                 rich.print(f"Trying another time {i}/3")
-                status = cls.run_ssh_tunnel_port_forward(ssh_tunnel_arg_str, shell)
+                status = cls.__run_ssh_tunnel(ssh_tunnel_arg_str, shell, already_split)
             else:
                 break
         if not cls.connected and status:
@@ -205,15 +250,15 @@ class Bastion:
                 print(
                     f"Current session {delta} seconds remaining ({ttl_now}) "
                     f"reconnecting")
-                cls.run_ssh_tunnel_port_forward(ssh_tunnel_arg_str, shell)
+                cls.__run_ssh_tunnel(ssh_tunnel_arg_str, shell, already_split)
                 return False
             else:
                 print("Bastion Session TTL run out, please start create new one")
                 return True
 
     @classmethod
-    def create_bastion_session_port_forward(cls, bastion_id, ip, name, port, ssh_path,
-                                            ttl, shell):
+    def __create_bastion_session_port_forward(cls, bastion_id, ip, name, port, ssh_path,
+                                              ttl, shell):
         bastion_arg_str = f"oci bastion session create-port-forwarding " \
                           f"--bastion-id {bastion_id} " \
                           f"--display-name {name} " \
@@ -227,21 +272,20 @@ class Bastion:
         return res
 
     @classmethod
-    def create_bastion_session_managed_ssh(cls, bastion_id, resource_id, name,
-                                           os_username, ip, port, ssh_path, ttl, shell):
+    def __create_bastion_ssh_session_managed(cls, bastion_id, resource_id, name,
+                                             os_username, ssh_path, ttl, shell):
         bastion_arg_str = f"oci bastion session create-managed-ssh " \
                           f"--bastion-id {bastion_id} " \
                           f"--display-name {name} " \
                           f"--ssh-public-key-file {ssh_path} " \
                           f"--key-type PUB " \
                           f"--target-resource-id {resource_id} " \
-                          f"--target-os-username {os_username}" \
-                          f"--target-private-ip {ip} " \
-                          f"--target-port {port}" \
+                          f"--target-os-username {os_username} " \
                           f"--session-ttl {ttl}"
 
         print("Creating Managed SSH Session")
         res = subprocess.check_output(bastion_arg_str.split(), shell=shell)
+        logging.debug(res.decode())
         return res
 
     @classmethod
@@ -249,38 +293,46 @@ class Bastion:
         return str(Path(creds["ssh-pub-path"]).expanduser().resolve())
 
     @classmethod
-    def generate_sample_dict(cls):
+    def generate_sample_dict(cls, generate_with_delete_this=True):
         td = dict()
-        td["delete_this"] = "Delete This Line after you Fill" \
-                            " this file with your credentials"
+        if generate_with_delete_this:
+            td["delete_this"] = "Delete This Line after you Fill" \
+                                " this file with your credentials"
         td["host"] = "host.bastion.us-phoenix-1.oci.oraclecloud.com"
         td["bastion-id"] = "ocid1.bastion......"
         td["default-name"] = "My super cool name"
         td["ssh-pub-path"] = str((Path().home() / ".ssh" / "id_rsa.pub").absolute())
-        td["target-ip"] = "0.0.0.0"
-        td["target-port"] = "22"
+        td["private-key-path"] = str((Path().home() / ".ssh" / "id_rsa").absolute())
+        td["target-ip"] = "0.0.0.0 // This is required only for Port Forward session"
+        td["target-port"] = "22 // This is required only for Port Forward session"
         td["ttl"] = "10800"
         td["resource-id"] = "ocid... " \
                             "// This is required only for Managed SSH session"
         td["resource-os-username"] = "MyResourceName " \
                                      "// This is required only for Managed SSH session"
         td["private-key-path"] = "Path to private key used in SSH Tunnel " \
-                                  "// This is required only for Managed SSH session"
+                                 "// This is required only for Managed SSH session"
         return td
 
     @classmethod
-    def run_ssh_tunnel_port_forward(cls, ssh_tunnel_arg_str, shell):
+    def __run_ssh_tunnel(cls, ssh_tunnel_arg_str, shell, already_split=False):
         """
 
         :param ssh_tunnel_arg_str: String for ssh tunnel creation
         :param shell: If use shell environment (can have different impacts on MAC and LINUX)
         :return:
         """
-        p = subprocess.Popen(ssh_tunnel_arg_str.split(), stdout=subprocess.PIPE,
+        if not already_split:
+            args_split = ssh_tunnel_arg_str.split()
+        else:
+            args_split = ssh_tunnel_arg_str
+
+        p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, shell=shell)
         cls.active_tunnel = p
         while not p.poll():
             line = p.stdout.readline().decode("utf-8").replace("\r", "").replace("", "")
+
             if "Permission denied" in line:
                 cls.connected = False
                 return False
@@ -289,31 +341,7 @@ class Bastion:
                 rich.print(f"SSH Tunnel Running from {datetime.datetime.now()}")
                 cls.connected = True
             if line:
-                logging.debug(line)
-        cls.connected = False
-        return True
-
-    @classmethod
-    def run_ssh_tunnel_managed_ssh(cls, ssh_tunnel_arg_str, shell):
-        """
-
-        :param ssh_tunnel_arg_str: String for ssh tunnel creation
-        :param shell: If use shell environment (can have different impacts on MAC and LINUX)
-        :return:
-        """
-        p = subprocess.Popen(ssh_tunnel_arg_str.split(), stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT, shell=shell)
-        cls.active_tunnel = p
-        while not p.poll():
-            line = p.stdout.readline().decode("utf-8").replace("\r", "").replace("", "")
-            if "Permission denied" in line:
-                cls.connected = False
-                return False
-            if "pledge: network" in line:
-                print("Success !")
-                rich.print(f"SSH Tunnel Running from {datetime.datetime.now()}")
-                cls.connected = True
-            if line:
-                logging.debug(line)
+                print(line)
+                logging.debug(f"SSH: {line}")
         cls.connected = False
         return True
