@@ -336,7 +336,7 @@ class Bastion:
             if "Permission denied" in line:
                 cls.connected = False
                 return False
-            if "pledge: network" in line:
+            if "pledge:" in line:
                 print("Success !")
                 rich.print(f"SSH Tunnel Running from {datetime.datetime.now()}")
                 cls.connected = True
