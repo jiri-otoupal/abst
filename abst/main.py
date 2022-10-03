@@ -118,7 +118,6 @@ def single(shell, debug):
             level=logging.DEBUG, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
         )
 
-    logging.debug("Test")
 
     Bastion.create_forward_loop(shell=shell)
 

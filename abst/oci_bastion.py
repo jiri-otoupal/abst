@@ -265,7 +265,7 @@ class Bastion:
                           f"--ssh-public-key-file {ssh_path} " \
                           f"--key-type PUB " \
                           f"--target-private-ip {ip} " \
-                          f"--target-port {port}" \
+                          f"--target-port {port} " \
                           f"--session-ttl {ttl}"
         print("Creating Port Forward Session")
         res = subprocess.check_output(bastion_arg_str.split(), shell=shell)
