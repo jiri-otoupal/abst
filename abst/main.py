@@ -109,9 +109,17 @@ def managed():
                  help="Creates only one bastion session and keeps reconnecting until"
                       " its deleted, does not create any more Bastion sessions")
 @click.option("--shell", is_flag=True, default=False)
-def single(shell):
+@click.option("--debug", is_flag=True, default=False)
+def single(shell, debug):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
+    if debug:
+        logging.basicConfig(
+            level=logging.DEBUG, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
+        )
+
+    logging.debug("Test")
+
     Bastion.create_forward_loop(shell=shell)
 
 
@@ -119,9 +127,15 @@ def single(shell):
                  help="Creates and connects to Bastion session indefinitely until "
                       "terminated by user")
 @click.option("--shell", is_flag=True, default=False)
-def fullauto(shell):
+@click.option("--debug", is_flag=True, default=False)
+def fullauto(shell, debug):
     """Creates and connects to bastion sessions
      automatically until terminated"""
+
+    if debug:
+        logging.basicConfig(
+            level=logging.DEBUG, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
+        )
 
     while True:
         print("Creating New Bastion Session")
@@ -138,9 +152,15 @@ def fullauto(shell):
                  help="Creates only one bastion session and keeps reconnecting until"
                       " its deleted, does not create any more Bastion sessions")
 @click.option("--shell", is_flag=True, default=False)
-def single(shell):
+@click.option("--debug", is_flag=True, default=False)
+def single(shell, debug):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
+    if debug:
+        logging.basicConfig(
+            level=logging.DEBUG, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
+        )
+
     Bastion.create_managed_loop(shell=shell)
 
 
@@ -148,10 +168,14 @@ def single(shell):
                  help="Creates and connects to Bastion session indefinitely until "
                       "terminated by user")
 @click.option("--shell", is_flag=True, default=False)
-def fullauto(shell):
+@click.option("--debug", is_flag=True, default=False)
+def fullauto(shell, debug):
     """Creates and connects to bastion sessions
      automatically until terminated"""
-
+    if debug:
+        logging.basicConfig(
+            level=logging.DEBUG, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
+        )
     while True:
         print("Creating New Bastion Session")
         Bastion.create_managed_loop(shell=shell)

@@ -341,7 +341,6 @@ class Bastion:
                 rich.print(f"SSH Tunnel Running from {datetime.datetime.now()}")
                 cls.connected = True
             if line:
-                print(line)
                 logging.debug(f"SSH: {line}")
         cls.connected = False
         return True
