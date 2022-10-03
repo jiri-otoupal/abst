@@ -162,9 +162,11 @@ class Bastion:
         response = None
         try:
             cls.response = response = json.loads(res)
+            logging.debug(f"Server Response: {response}")
         except JSONDecodeError:
-            print(f"Failed to decode json: {res}")
+            rich.print(f"Failed to decode json: {res}")
         bid = response.get("data", None).get("id", None)
+
         return bid, response
 
     @classmethod
@@ -181,14 +183,18 @@ class Bastion:
     @classmethod
     def create_bastion_ssh_session_managed(cls, creds, shell):
         ssh_key_path = cls.get_ssh_pub_key_path(creds)
-        res = cls.__create_bastion_ssh_session_managed(creds["bastion-id"],
-                                                       creds["resource-id"],
-                                                       creds["default-name"],
-                                                       creds["resource-os-username"],
-                                                       ssh_key_path,
-                                                       creds["ttl"], shell
-                                                       )
-        return res
+        try:
+            res = cls.__create_bastion_ssh_session_managed(creds["bastion-id"],
+                                                           creds["resource-id"],
+                                                           creds["default-name"],
+                                                           creds["resource-os-username"],
+                                                           ssh_key_path,
+                                                           creds["ttl"], shell
+                                                           )
+            return res
+        except KeyError as ex:
+            rich.print(f"Missing filled out parameter {ex}")
+            exit(1)
 
     @classmethod
     def handle_creds_load(cls):
@@ -327,11 +333,16 @@ class Bastion:
         else:
             args_split = ssh_tunnel_arg_str
 
+        logging.debug(f'SSH Tunnel command: {" ".join(ssh_tunnel_arg_str)}')
+
         p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, shell=shell)
         cls.active_tunnel = p
         while not p.poll():
-            line = p.stdout.readline().decode("utf-8").replace("\r", "").replace("", "")
+            line = p.stdout.readline().decode("utf-8").strip()
+
+            if line:
+                logging.debug(f"SSH: {line}")
 
             if "Permission denied" in line:
                 cls.connected = False
@@ -340,7 +351,6 @@ class Bastion:
                 print("Success !")
                 rich.print(f"SSH Tunnel Running from {datetime.datetime.now()}")
                 cls.connected = True
-            if line:
-                logging.debug(f"SSH: {line}")
+
         cls.connected = False
         return True
