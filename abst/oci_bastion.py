@@ -138,8 +138,8 @@ class Bastion:
         print("Initializing SSH Tunnel")
 
         ssh_tunnel_args = [f"ssh", "-i", f"{priv_key_path}", "-o",
-                           f"ProxyCommand='ssh -i {priv_key_path} -W %h:%p -p {port} {bid}@{host}'",
-                           "-p", f"{port}", f"{username}@{ip}", "-v"]
+                           f"ProxyCommand='ssh -i {priv_key_path} -W %h:%p -p {port} {bid}@{host} -A'",
+                           "-p", f"{port}", f"{username}@{ip}", "-v", "-A"]
         cls.__run_ssh_tunnel(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args
 

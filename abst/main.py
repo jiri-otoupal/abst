@@ -113,11 +113,10 @@ def managed():
 def single(shell, debug):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
-    if debug:
-        logging.basicConfig(
-            level=logging.DEBUG, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
-        )
-
+    logging.basicConfig(
+        level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s", datefmt="[%X]",
+        handlers=[RichHandler()]
+    )
 
     Bastion.create_forward_loop(shell=shell)
 
@@ -131,10 +130,10 @@ def fullauto(shell, debug):
     """Creates and connects to bastion sessions
      automatically until terminated"""
 
-    if debug:
-        logging.basicConfig(
-            level=logging.DEBUG, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
-        )
+    logging.basicConfig(
+        level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s", datefmt="[%X]",
+        handlers=[RichHandler()]
+    )
 
     while True:
         print("Creating New Bastion Session")
@@ -155,10 +154,10 @@ def fullauto(shell, debug):
 def single(shell, debug):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
-    if debug:
-        logging.basicConfig(
-            level=logging.DEBUG, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
-        )
+    logging.basicConfig(
+        level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s", datefmt="[%X]",
+        handlers=[RichHandler()]
+    )
 
     Bastion.create_managed_loop(shell=shell)
 
@@ -171,10 +170,11 @@ def single(shell, debug):
 def fullauto(shell, debug):
     """Creates and connects to bastion sessions
      automatically until terminated"""
-    if debug:
-        logging.basicConfig(
-            level=logging.DEBUG, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
-        )
+    logging.basicConfig(
+        level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s", datefmt="[%X]",
+        handlers=[RichHandler()]
+    )
+
     while True:
         print("Creating New Bastion Session")
         Bastion.create_managed_loop(shell=shell)
