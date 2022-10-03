@@ -332,8 +332,7 @@ class Bastion:
             args_split = ssh_tunnel_arg_str.split()
         else:
             args_split = ssh_tunnel_arg_str
-
-        logging.debug(f'SSH Tunnel command: {" ".join(ssh_tunnel_arg_str)}')
+        logging.debug(f'SSH Tunnel command: {"".join(ssh_tunnel_arg_str)}')
 
         p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, shell=shell)

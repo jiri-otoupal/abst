@@ -113,10 +113,7 @@ def managed():
 def single(shell, debug):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
-    logging.basicConfig(
-        level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s", datefmt="[%X]",
-        handlers=[RichHandler()]
-    )
+    setup_debug(debug)
 
     Bastion.create_forward_loop(shell=shell)
 
@@ -130,10 +127,7 @@ def fullauto(shell, debug):
     """Creates and connects to bastion sessions
      automatically until terminated"""
 
-    logging.basicConfig(
-        level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s", datefmt="[%X]",
-        handlers=[RichHandler()]
-    )
+    setup_debug(debug)
 
     while True:
         print("Creating New Bastion Session")
@@ -154,12 +148,19 @@ def fullauto(shell, debug):
 def single(shell, debug):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
+    setup_debug(debug)
+
+    Bastion.create_managed_loop(shell=shell)
+
+
+def setup_debug(debug):
+    if not debug:
+        logging.disable(logging.DEBUG)
+
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s", datefmt="[%X]",
         handlers=[RichHandler()]
     )
-
-    Bastion.create_managed_loop(shell=shell)
 
 
 @managed.command("fullauto",
@@ -170,10 +171,7 @@ def single(shell, debug):
 def fullauto(shell, debug):
     """Creates and connects to bastion sessions
      automatically until terminated"""
-    logging.basicConfig(
-        level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s", datefmt="[%X]",
-        handlers=[RichHandler()]
-    )
+    setup_debug(debug)
 
     while True:
         print("Creating New Bastion Session")
