@@ -339,7 +339,7 @@ class Bastion:
         p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, shell=shell)
         cls.active_tunnel = p
-        while not p.poll():
+        while p.poll() is None:
             line = p.stdout.readline().decode("utf-8").strip()
 
             if line:
@@ -352,6 +352,8 @@ class Bastion:
                 rich.print("Success !")
                 rich.print(f"SSH Tunnel Running from {datetime.datetime.now()}")
                 cls.connected = True
+
+            sleep(0.1)
 
         logging.debug("Waiting for ssh tunnel to end")
         p.wait()
