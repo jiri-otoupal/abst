@@ -130,7 +130,6 @@ def fullauto(shell, debug):
     setup_debug(debug)
 
     while True:
-        print("Creating New Bastion Session")
         Bastion.create_forward_loop(shell=shell)
 
         Bastion.connected = False
@@ -174,7 +173,6 @@ def fullauto(shell, debug):
     setup_debug(debug)
 
     while True:
-        print("Creating New Bastion Session")
         Bastion.create_managed_loop(shell=shell)
 
         Bastion.connected = False

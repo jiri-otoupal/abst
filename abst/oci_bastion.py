@@ -139,7 +139,7 @@ class Bastion:
 
         ssh_tunnel_args = [f"ssh", "-i", f"{priv_key_path}", "-o",
                            f"ProxyCommand='ssh -i {priv_key_path} -W %h:%p -p {port} {bid}@{host} -A'",
-                           "-p", f"{port}", f"{username}@{ip}", "-v", "-A"]
+                           "-p", f"{port}", f"{username}@{ip}", "-vvv", "-A"]
         cls.__run_ssh_tunnel(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args
 
@@ -147,7 +147,7 @@ class Bastion:
     def run_ssh_tunnel_port_forward(cls, bid, host, ip, port, shell):
         print("Bastion initialized")
         print("Initializing SSH Tunnel")
-        ssh_tunnel_arg_str = f"ssh  -N -L {port}:{ip}:{port} -p 22 {bid}@{host} -v"
+        ssh_tunnel_arg_str = f"ssh  -N -L {port}:{ip}:{port} -p 22 {bid}@{host} -vvv"
         cls.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
         return ssh_tunnel_arg_str
 
@@ -217,6 +217,7 @@ class Bastion:
             creds = json.load(f)
             if "delete_this" in creds.keys():
                 raise Exception("Delete This Tag not removed! Please Remove Before continue")
+            logging.debug(f"Loaded Credentials {creds}")
         return creds
 
     @classmethod
@@ -334,16 +335,22 @@ class Bastion:
             args_split = ssh_tunnel_arg_str.split()
         else:
             args_split = ssh_tunnel_arg_str
-        logging.debug(f'SSH Tunnel command: {"".join(ssh_tunnel_arg_str)}')
+        logging.debug(f'SSH Tunnel command: {" ".join(args_split)}')
 
         p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, shell=shell)
         cls.active_tunnel = p
         while p.poll() is None:
             line = p.stdout.readline().decode("utf-8").strip()
+            line_err = None
+
+            if p.stderr:
+                line_err = p.stderr.readline().decode("utf-8").strip()
 
             if line:
-                logging.debug(f"SSH: {line}")
+                logging.debug(f"SSH stdout: {line}")
+            if line_err:
+                logging.debug(f"SSH stderr: {line_err}")
 
             if "Permission denied" in line:
                 cls.connected = False
@@ -353,11 +360,16 @@ class Bastion:
                 rich.print(f"SSH Tunnel Running from {datetime.datetime.now()}")
                 cls.connected = True
 
-            sleep(0.1)
+            if not line and not line_err:
+                sleep(0.1)
 
         logging.debug("Waiting for ssh tunnel to end")
         p.wait()
         logging.debug(f"SSH Tunnel Process ended with exit code {p.returncode}")
+        if p.returncode == 255:
+            rich.print("SSH Tunnel can not be initialized because of failed authorization")
+            rich.print("Please check you configuration, for more info use --debug flag")
+            exit(255)
 
         cls.connected = False
         return True
