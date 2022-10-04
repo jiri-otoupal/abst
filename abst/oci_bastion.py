@@ -234,7 +234,7 @@ class Bastion:
     def connect_till_deleted(cls, sdata, ssh_tunnel_arg_str, status, shell, already_split=False):
         """
         Will connect to session and reconnect every time it disconnect until session is
-        deleted :param shell: If use shell environment (can have different impacts on
+        deleted :param shell: If you use shell environment (can have different impacts on
         MAC and LINUX) :param sdata: :param ssh_tunnel_arg_str: :param status: :return:
         """
         for i in range(1, 3):
@@ -243,6 +243,8 @@ class Bastion:
                 status = cls.__run_ssh_tunnel(ssh_tunnel_arg_str, shell, already_split)
             else:
                 break
+
+        # Proceed with check for disconnect or termination, after process termination
         if not cls.connected and status:
             rich.print(f"Checking for idle termination, Bastion Active? {status}")
             created_time = datetime.datetime.fromisoformat(
@@ -347,9 +349,13 @@ class Bastion:
                 cls.connected = False
                 return False
             if "pledge:" in line:
-                print("Success !")
+                rich.print("Success !")
                 rich.print(f"SSH Tunnel Running from {datetime.datetime.now()}")
                 cls.connected = True
+
+        logging.debug("Waiting for ssh tunnel to end")
+        p.wait()
+        logging.debug(f"SSH Tunnel Process ended with exit code {p.returncode}")
 
         cls.connected = False
         return True
