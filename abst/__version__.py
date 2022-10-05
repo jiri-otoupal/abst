@@ -10,7 +10,7 @@ __description__ = (
     "CLI Command making OCI Bastion simple and fast"
 )
 
-__version__ = "1.3.9"
+__version__ = "1.4.0"
 __author__ = "Jiri Otoupal"
 __author_email__ = "jiri-otoupal@ips-database.eu"
 __license__ = "Apache 2.0"
