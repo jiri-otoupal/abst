@@ -58,7 +58,11 @@ class Bastion:
         print("Loading Credentials")
         creds = cls.handle_creds_load()
 
-        res = cls.create_bastion_ssh_session_managed(creds, shell)
+        try:
+            res = cls.create_bastion_ssh_session_managed(creds, shell)
+        except subprocess.CalledProcessError as ex:
+            rich.print(f"[red]Invalid Config in abst[/red]")
+            exit(1)
 
         bid, response = cls.load_response(res)
 
@@ -101,8 +105,12 @@ class Bastion:
         print("Loading Credentials")
         creds = cls.handle_creds_load()
 
-        host, ip, port, res = cls.create_bastion_forward_port_session(creds,
-                                                                      shell)
+        try:
+            host, ip, port, res = cls.create_bastion_forward_port_session(creds,
+                                                                          shell)
+        except subprocess.CalledProcessError as ex:
+            rich.print(f"[red]Invalid Config in abst[/red]")
+            exit(1)
 
         bid, response = cls.load_response(res)
 
@@ -138,7 +146,8 @@ class Bastion:
         print("Initializing SSH Tunnel")
 
         ssh_tunnel_args = [f"ssh", "-i", f"{priv_key_path}", "-o",
-                           f"ProxyCommand='ssh -i {priv_key_path} -W %h:%p -p {port} {bid}@{host} -A'",
+                           f"ProxyCommand='ssh -i {priv_key_path} -W %h:%p"
+                           f" -p {port} {bid}@{host} -A'",
                            "-p", f"{port}", f"{username}@{ip}", "-vvv", "-A"]
         cls.__run_ssh_tunnel(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args
@@ -328,14 +337,20 @@ class Bastion:
         """
 
         :param ssh_tunnel_arg_str: String for ssh tunnel creation
-        :param shell: If use shell environment (can have different impacts on MAC and LINUX)
+        :param shell: If you use shell environment (can have different impacts on MAC and LINUX)
         :return:
         """
-        if not already_split:
+        if not already_split and not shell:
             args_split = ssh_tunnel_arg_str.split()
-        else:
+        elif not already_split and shell:
             args_split = ssh_tunnel_arg_str
-        logging.debug(f'SSH Tunnel command: {" ".join(args_split)}')
+        else:
+            if shell:
+                args_split = " ".join(ssh_tunnel_arg_str)
+            else:
+                args_split = ssh_tunnel_arg_str
+
+        logging.debug(f'SSH Tunnel command: {" ".join(args_split) if not shell else args_split}')
 
         p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, shell=shell)
@@ -369,6 +384,7 @@ class Bastion:
         if p.returncode == 255:
             rich.print("SSH Tunnel can not be initialized because of failed authorization")
             rich.print("Please check you configuration, for more info use --debug flag")
+            Bastion.kill_bastion()
             exit(255)
 
         cls.connected = False
