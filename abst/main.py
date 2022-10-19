@@ -34,7 +34,9 @@ def config():
 
 
 @config.command("generate", help="Will generate sample json and overwrite changes")
-def generate():
+@click.option("--debug", is_flag=True, default=False)
+def generate(debug):
+    setup_debug(debug)
     Bastion.create_default_location()
     td = Bastion.generate_sample_dict()
     creds_path = Bastion.write_creds_json(td)
@@ -44,7 +46,10 @@ def generate():
 
 
 @config.command("fill", help="Fills Json config with credentials you enter interactively")
-def fill():
+@click.option("--debug", is_flag=True, default=False)
+def fill(debug):
+    setup_debug(debug)
+
     if not default_creds_path.exists():
         print("Generating sample Creds file")
         Bastion.create_default_location()

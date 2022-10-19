@@ -35,7 +35,7 @@ class Bastion:
             cls.active_tunnel.send_signal(signal.SIGTERM)
             sess_id = cls.response["data"]["id"]
             print("Cleaning")
-            out = cls.delete_bastion_session(sess_id, Bastion.shell)
+            out = cls.delete_bastion_session(sess_id)
             rich.print(out)
             print("Removed Session")
         except Exception:
@@ -44,11 +44,11 @@ class Bastion:
             exit(0)
 
     @classmethod
-    def delete_bastion_session(cls, sess_id, shell):
+    def delete_bastion_session(cls, sess_id):
         print("Removing Bastion session")
         bastion_kill_arg_str = f"oci bastion session delete --session-id {sess_id}" \
                                f" --force"
-        out = subprocess.check_output(bastion_kill_arg_str.split(), shell=shell).decode(
+        out = subprocess.check_output(bastion_kill_arg_str.split(), shell=False).decode(
             "utf-8")
         return out
 
@@ -59,7 +59,7 @@ class Bastion:
         creds = cls.handle_creds_load()
 
         try:
-            res = cls.create_bastion_ssh_session_managed(creds, shell)
+            res = cls.create_bastion_ssh_session_managed(creds)
         except subprocess.CalledProcessError as ex:
             rich.print(f"[red]Invalid Config in abst[/red]")
             exit(1)
@@ -106,8 +106,7 @@ class Bastion:
         creds = cls.handle_creds_load()
 
         try:
-            host, ip, port, res = cls.create_bastion_forward_port_session(creds,
-                                                                          shell)
+            host, ip, port, res = cls.create_bastion_forward_port_session(creds)
         except subprocess.CalledProcessError as ex:
             rich.print(f"[red]Invalid Config in abst[/red]")
             exit(1)
@@ -146,8 +145,8 @@ class Bastion:
         print("Initializing SSH Tunnel")
 
         ssh_tunnel_args = [f"ssh", "-i", f"{priv_key_path}", "-o",
-                           f"ProxyCommand='ssh -i {priv_key_path} -W %h:%p"
-                           f" -p {port} {bid}@{host} -A'",
+                           f"ProxyCommand=ssh -i {priv_key_path} -W %h:%p"
+                           f" -p {port} {bid}@{host} -A",
                            "-p", f"{port}", f"{username}@{ip}", "-vvv", "-A"]
         cls.__run_ssh_tunnel(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args
@@ -179,18 +178,18 @@ class Bastion:
         return bid, response
 
     @classmethod
-    def create_bastion_forward_port_session(cls, creds, shell):
+    def create_bastion_forward_port_session(cls, creds):
         ssh_key_path = cls.get_ssh_pub_key_path(creds)
         res = cls.__create_bastion_session_port_forward(creds["bastion-id"],
                                                         creds["target-ip"],
                                                         creds["default-name"],
                                                         creds["target-port"],
                                                         ssh_key_path,
-                                                        creds["ttl"], shell)
+                                                        creds["ttl"], False)
         return creds["host"], creds["target-ip"], creds["target-port"], res
 
     @classmethod
-    def create_bastion_ssh_session_managed(cls, creds, shell):
+    def create_bastion_ssh_session_managed(cls, creds):
         ssh_key_path = cls.get_ssh_pub_key_path(creds)
         try:
             res = cls.__create_bastion_ssh_session_managed(creds["bastion-id"],
@@ -198,7 +197,7 @@ class Bastion:
                                                            creds["default-name"],
                                                            creds["resource-os-username"],
                                                            ssh_key_path,
-                                                           creds["ttl"], shell
+                                                           creds["ttl"], False
                                                            )
             return res
         except KeyError as ex:
