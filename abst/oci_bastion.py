@@ -124,7 +124,7 @@ class Bastion:
         sleep(1)  # Precaution
 
         ssh_tunnel_arg_str = cls.run_ssh_tunnel_port_forward(bid, host, ip, port,
-                                                             shell)
+                                                             shell, creds.get("local-port", 22))
 
         while status := (sdata := cls.get_bastion_state()["data"])[
                             "lifecycle-state"] == "ACTIVE":
@@ -145,17 +145,17 @@ class Bastion:
         print("Initializing SSH Tunnel")
 
         ssh_tunnel_args = [f"ssh", "-i", f"{priv_key_path}", "-o",
-                           f"ProxyCommand=ssh -i {priv_key_path} -W %h:%p"
-                           f" -p {port} {bid}@{host} -A",
+                           f"ProxyCommand='ssh -i {priv_key_path} -W %h:%p -p {port} {bid}@{host} -A'",
                            "-p", f"{port}", f"{username}@{ip}", "-vvv", "-A"]
         cls.__run_ssh_tunnel(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args
 
     @classmethod
-    def run_ssh_tunnel_port_forward(cls, bid, host, ip, port, shell):
+    def \
+            run_ssh_tunnel_port_forward(cls, bid, host, ip, port, shell, local_port):
         print("Bastion initialized")
         print("Initializing SSH Tunnel")
-        ssh_tunnel_arg_str = f"ssh  -N -L {port}:{ip}:{port} -p 22 {bid}@{host} -vvv"
+        ssh_tunnel_arg_str = f"ssh -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} -vvv"
         cls.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
         return ssh_tunnel_arg_str
 
@@ -321,6 +321,7 @@ class Bastion:
         td["ssh-pub-path"] = str((Path().home() / ".ssh" / "id_rsa.pub").absolute())
         td["private-key-path"] = str((Path().home() / ".ssh" / "id_rsa").absolute())
         td["target-ip"] = "0.0.0.0 // This is required only for Port Forward session"
+        td["local-port"] = "22"
         td["target-port"] = "22 // This is required only for Port Forward session"
         td["ttl"] = "10800"
         td["resource-id"] = "ocid... " \
