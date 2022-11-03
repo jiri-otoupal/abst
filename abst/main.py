@@ -8,7 +8,7 @@ import rich
 from InquirerPy import inquirer
 from rich.logging import RichHandler
 
-from abst.config import default_creds_path
+from abst.config import default_creds_path, default_config_keys
 from abst.oci_bastion import Bastion
 
 
@@ -67,6 +67,42 @@ def fill(debug):
     rich.print_json(data=n_dict)
     if inquirer.confirm(message="Write New Json ?", default=False).execute():
         Bastion.write_creds_json(n_dict)
+        rich.print("[green]Wrote changes[/green]")
+    else:
+        rich.print("[red]Fill interrupted, nothing changed[/red]")
+
+
+@config.command("locate", help="Locates Json config with credentials you enter interactively")
+@click.option("--debug", is_flag=True, default=False)
+def locate(debug):
+    setup_debug(debug)
+    if default_creds_path.exists():
+        rich.print(f"[green]Config file location {str(default_creds_path.absolute())}[/green]")
+    else:
+        rich.print(
+            f"[red]Config does not exist yet, future location {str(default_creds_path.absolute())}[/red]")
+
+
+@config.command("upgrade", help="Locates Json config with credentials you enter interactively")
+@click.option("--debug", is_flag=True, default=False)
+def upgrade(debug):
+    setup_debug(debug)
+
+    if not default_creds_path.exists():
+        rich.print("[green]No config to upgrade[/green]")
+        return
+
+    creds_json_ro = Bastion.load_creds_json()
+    missing_keys = set(default_config_keys).difference(creds_json_ro.keys())
+
+    res_json = dict(creds_json_ro)
+
+    for key in missing_keys:
+        res_json[key] = "New Key"
+
+    rich.print_json(data=res_json)
+    if inquirer.confirm(message="Write New Json ?", default=False).execute():
+        Bastion.write_creds_json(res_json)
         rich.print("[green]Wrote changes[/green]")
     else:
         rich.print("[red]Fill interrupted, nothing changed[/red]")
