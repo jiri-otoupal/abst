@@ -8,19 +8,11 @@ import rich
 from InquirerPy import inquirer
 from rich.logging import RichHandler
 
-from abst.config import default_creds_path, default_config_keys
+from abst.bastion_scheduler import BastionScheduler
+from abst.cfg_func import __upgrade
+from abst.config import default_creds_path, default_contexts_location, default_conf_path
 from abst.oci_bastion import Bastion
-
-
-# Press the green button in the gutter to run the script.
-def main():
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[RichHandler()]
-    )
-    cli()
+from abst.tools import get_context_path, display_scheduled
 
 
 @click.group()
@@ -33,79 +25,170 @@ def config():
     pass
 
 
+@cli.group(help="Parallel Bastion Control group")
+def parallel():
+    """
+    Only Port Forwarded sessions are supported
+
+    This makes it possible to run multiple forward sessions of multiple context in
+     the same time, useful when working with multiple clusters
+    """
+    pass
+
+
+@parallel.command("add", help="Add Bastion to stack")
+@click.option("--debug", is_flag=True, default=False)
+@click.argument("context-name", default="default")
+def add(debug, context_name):
+    """
+    Add Bastions to stack
+
+    use default for adding default cluster ! this is reserved name !
+    :param debug:
+    :param context_name:
+    :return:
+    """
+    setup_debug(debug)
+
+    BastionScheduler.add_bastion(context_name)
+    display_scheduled()
+
+
+@parallel.command("remove", help="Remove Bastion from stack")
+@click.option("--debug", is_flag=True, default=False)
+@click.argument("context-name", default="default")
+def remove(debug, context_name):
+    setup_debug(debug)
+    BastionScheduler.remove_bastion(context_name)
+    display_scheduled()
+
+
+@parallel.command("run", help="Run All Bastions in fullauto")
+@click.option("--debug", is_flag=True, default=False)
+def run(debug):
+    setup_debug(debug)
+    display_scheduled()
+    confirm = inquirer.confirm(
+        "Do you really want to run following contexts?").execute()
+    if not confirm:
+        rich.print("[green]Cancelling, nothing started[/green]")
+        exit(0)
+    BastionScheduler.run()
+
+
+@parallel.command("display", help="Display current Bastions is stack")
+@click.option("--debug", is_flag=True, default=False)
+def display(debug):
+    setup_debug(debug)
+
+    display_scheduled()
+
+
+@cli.command("use",
+             help="Will Switch context to be used,"
+                  " use default for default context specified"
+                  " in creds.json")
+@click.option("--debug", is_flag=True, default=False)
+@click.argument("context-name", default="default")
+def use(debug, context_name):
+    setup_debug(debug)
+
+    Bastion.create_default_location()
+    conf = Bastion.load_config()
+    conf["used_context"] = None if context_name == "default" else context_name
+
+    rich.print("[green]Successfully Switched[/green]")
+    rich.print(
+        f"[white]Currently used context is[/white] [green]{context_name}[/green] "
+        f"[gray](This does not change context in .kube)[/gray]")
+    Bastion.write_creds_json(conf, default_conf_path)
+
+
 @config.command("generate", help="Will generate sample json and overwrite changes")
 @click.option("--debug", is_flag=True, default=False)
-def generate(debug):
+@click.argument("context-name", default=None, required=False)
+def generate(debug, context_name):
     setup_debug(debug)
+
+    path = get_context_path(context_name)
+
     Bastion.create_default_location()
     td = Bastion.generate_sample_dict()
-    creds_path = Bastion.write_creds_json(td)
+    creds_path = Bastion.write_creds_json(td, path)
     print(
         f"Sample credentials generated, please fill 'creds.json' in {creds_path} with "
-        f"your credentials for this to work, you can use 'abst json fill'")
+        f"your credentials for this to work, you can use 'abst json fill "
+        f"{context_name if context_name else ''}'")
 
 
 @config.command("fill", help="Fills Json config with credentials you enter interactively")
 @click.option("--debug", is_flag=True, default=False)
-def fill(debug):
+@click.argument("context-name", default=None, required=False)
+def fill(debug, context_name):
     setup_debug(debug)
 
+    path = get_context_path(context_name)
+
     if not default_creds_path.exists():
-        print("Generating sample Creds file")
+        rich.print("Generating sample Creds file")
         Bastion.create_default_location()
         td = Bastion.generate_sample_dict(False)
-        Bastion.write_creds_json(td)
+        Bastion.write_creds_json(td, path)
 
-    print("Please fill field one by one as displayed")
+    if not default_contexts_location.exists():
+        rich.print("Generating contexts location")
+        Bastion.create_default_location()
+
+    rich.print(f"[green]Filling {str(path)}")
+    rich.print("Please fill field one by one as displayed")
     n_dict = dict()
 
-    creds_json_ro = Bastion.load_creds_json()
+    creds_json_ro = Bastion.load_json(path)
+
     for key, value in creds_json_ro.items():
         n_dict[key] = inquirer.text(message=f"{key.capitalize()}:",
                                     default=value).execute()
     rich.print("\n[red]New json looks like this:[/red]")
     rich.print_json(data=n_dict)
     if inquirer.confirm(message="Write New Json ?", default=False).execute():
-        Bastion.write_creds_json(n_dict)
+        Bastion.write_creds_json(n_dict, path)
         rich.print("[green]Wrote changes[/green]")
     else:
         rich.print("[red]Fill interrupted, nothing changed[/red]")
 
 
-@config.command("locate", help="Locates Json config with credentials you enter interactively")
+@config.command("locate",
+                help="Locates Json config with credentials you enter interactively")
 @click.option("--debug", is_flag=True, default=False)
-def locate(debug):
+@click.argument("context-name", default=None, required=False)
+def locate(debug, context_name):
     setup_debug(debug)
-    if default_creds_path.exists():
-        rich.print(f"[green]Config file location {str(default_creds_path.absolute())}[/green]")
+
+    path = get_context_path(context_name)
+
+    if path.exists():
+        rich.print(
+            f"[green]Config file location: {path.absolute()}[/green]")
     else:
         rich.print(
-            f"[red]Config does not exist yet, future location {str(default_creds_path.absolute())}[/red]")
+            f"[red]Config does not exist yet, future location"
+            f" {path.absolute()}[/red]")
 
 
-@config.command("upgrade", help="Locates Json config with credentials you enter interactively")
+@config.command("upgrade",
+                help="Locates Json config with credentials you enter interactively")
 @click.option("--debug", is_flag=True, default=False)
-def upgrade(debug):
+@click.argument("context-name", default=None, required=False)
+def upgrade(debug, context_name):
     setup_debug(debug)
 
-    if not default_creds_path.exists():
+    path = get_context_path(context_name)
+
+    if not path.exists():
         rich.print("[green]No config to upgrade[/green]")
         return
 
-    creds_json_ro = Bastion.load_creds_json()
-    missing_keys = set(default_config_keys).difference(creds_json_ro.keys())
-
-    res_json = dict(creds_json_ro)
-
-    for key in missing_keys:
-        res_json[key] = "New Key"
-
-    rich.print_json(data=res_json)
-    if inquirer.confirm(message="Write New Json ?", default=False).execute():
-        Bastion.write_creds_json(res_json)
-        rich.print("[green]Wrote changes[/green]")
-    else:
-        rich.print("[red]Fill interrupted, nothing changed[/red]")
+    __upgrade(context_name, path)
 
 
 @cli.command("clean", help="Cleans all credentials created by abst")
@@ -113,27 +196,41 @@ def clean():
     """
 
     """
-    s = str(default_creds_path)
+
+    files = [*default_contexts_location.iterdir()]
+    if default_creds_path.exists():
+        files.append(default_creds_path)
     try:
         confirm = inquirer.confirm(
             "Do you really want to Delete all Creds file ? All of credentials will be "
-            "lost")
+            "lost").execute()
         if not confirm:
             rich.print("[green]Cancelling, nothing changed[/green]")
             exit(0)
 
         rich.print("[red]Deleting all of the credentials[/red]")
-
-        os.remove(s)
+        for file in files:
+            os.remove(str(file))
     except PermissionError:
         print("Do not have permission to remove, or process is using this file.")
-        print(f"Please delete manually in {s}")
+        print(f"Please delete manually in {file}")
 
 
 @cli.group(help="Group of commands for creating Bastion sessions")
 def create():
-    signal.signal(signal.SIGINT, Bastion.kill_bastion)
-    signal.signal(signal.SIGTERM, Bastion.kill_bastion)
+    signal.signal(signal.SIGINT, BastionScheduler.kill_all)
+    signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
+
+
+def setup_debug(debug):
+    if not debug:
+        logging.disable(logging.DEBUG)
+
+    logging.basicConfig(
+        level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s",
+        datefmt="[%X]",
+        handlers=[RichHandler()]
+    )
 
 
 @create.group(help="Group of commands for Creating Port Forward Sessions")
@@ -151,12 +248,19 @@ def managed():
                       " its deleted, does not create any more Bastion sessions")
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
-def single(shell, debug):
+@click.argument("context-name", default=None, required=False)
+def single_forward(shell, debug, context_name):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
     setup_debug(debug)
 
-    Bastion.create_forward_loop(shell=shell)
+    if context_name is None:
+        conf = Bastion.load_config()
+        used_name = conf["used_context"]
+    else:
+        used_name = context_name
+
+    Bastion(used_name).create_forward_loop(shell=shell)
 
 
 @forward.command("fullauto",
@@ -164,18 +268,20 @@ def single(shell, debug):
                       "terminated by user")
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
-def fullauto(shell, debug):
+@click.argument("context-name", default=None, required=False)
+def fullauto_forward(shell, debug, context_name):
     """Creates and connects to bastion sessions
      automatically until terminated"""
 
     setup_debug(debug)
+    if context_name is None:
+        conf = Bastion.load_config()
+        used_name = conf["used_context"]
+    else:
+        used_name = context_name
 
     while True:
-        Bastion.create_forward_loop(shell=shell)
-
-        Bastion.connected = False
-        Bastion.active_tunnel = None
-        Bastion.response = None
+        Bastion(used_name).create_forward_loop(shell=shell)
 
         sleep(1)
 
@@ -185,22 +291,18 @@ def fullauto(shell, debug):
                       " its deleted, does not create any more Bastion sessions")
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
-def single(shell, debug):
+@click.argument("context-name", default=None, required=False)
+def single_managed(shell, debug, context_name):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
     setup_debug(debug)
+    if context_name is None:
+        conf = Bastion.load_config()
+        used_name = conf["used_context"]
+    else:
+        used_name = context_name
 
-    Bastion.create_managed_loop(shell=shell)
-
-
-def setup_debug(debug):
-    if not debug:
-        logging.disable(logging.DEBUG)
-
-    logging.basicConfig(
-        level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s", datefmt="[%X]",
-        handlers=[RichHandler()]
-    )
+    Bastion(used_name).create_managed_loop(shell=shell)
 
 
 @managed.command("fullauto",
@@ -208,22 +310,36 @@ def setup_debug(debug):
                       "terminated by user")
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
-def fullauto(shell, debug):
+@click.argument("context-name", default=None, required=False)
+def fullauto_managed(shell, debug, context_name):
     """Creates and connects to bastion sessions
      automatically until terminated"""
     setup_debug(debug)
 
-    while True:
-        Bastion.create_managed_loop(shell=shell)
+    if context_name is None:
+        conf = Bastion.load_config()
+        used_name = conf["used_context"]
+    else:
+        used_name = context_name
 
-        Bastion.connected = False
-        Bastion.active_tunnel = None
-        Bastion.response = None
+    while True:
+        Bastion(used_name).create_managed_loop(shell=shell)
 
         sleep(1)
 
 
-if __name__ == '__main__':
-    signal.signal(signal.SIGINT, Bastion.kill_bastion)
-    signal.signal(signal.SIGTERM, Bastion.kill_bastion)
+def main():
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[RichHandler()]
+    )
+    Bastion.create_default_location()
     cli()
+
+
+if __name__ == '__main__':
+    signal.signal(signal.SIGINT, BastionScheduler.kill_all)
+    signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
+    main()

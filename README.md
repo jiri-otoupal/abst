@@ -37,10 +37,10 @@ Tutorial on Installation
 * Copy configuration file generated in your profile to `~/.oci/config`
 * Replace path of your `*.pem` key on line with **#TODO**
 
-
 ## Installing
 
 ### MacOS
+
 On most MacOS machines there is `pip3` instead of `pip` **use pip3 for install**
 
 Install and update using [pip](https://pip.pypa.io/en/stable/quickstart/):
@@ -55,17 +55,36 @@ pip3 install abst
 
 ## How to set up
 
-* Use `abst config fill` to fill your credentials for usage, you can find all the credentials on
-  cloud provider site
+* Use `abst config fill {context}` to fill your credentials for usage, you can find all the credentials on
+  cloud provider site, leave context empty if you want to fill default
+* Use `abst generate {context}` to generate default config for context, leave context empty if you want to generate to
+  default
 
 ## Usage
 
 ###### Both commands do automatic reconnect on idle SSH Tunnel termination
 
-* `abst create forward/managed single` for single bastion session with persisting SSH connection
-* `abst create forward/managed fullauto` for automatic Bastion session creation once deleted, will keep your
+* `abst create forward/managed single {context}` for single bastion session with persisting SSH connection, leave
+  context empty if you want to use default
+* `abst create forward/managed fullauto {context}` for automatic Bastion session creation once deleted, will keep your,
+  leave context empty if you want to use default
   connection alive till you kill this script
 * `abst clean` for removal all the saved credentials
+* `abst use {context}` for using different config that you had filled, `default` is the default context in `creds.json`
+* Use `abst locate {context}` to locate your configs, leave context empty if you want to locate default
+
+### Parallel execution
+
+If you are more demanding and need to have connection to your SSH Tunnels ready at all times
+you can use parallel executed Bastions that currently work for full-auto forwarded setting
+
+Change local port in the setting to port that is unique to other configs, and it will be running on all the added ports
+Until you kill the `abst` command, it will automatically remove all generated Bastion sessions by this program
+
+* `abst parallel add {context}` will add context from your `context folder` to stack that will be executed
+* `abst parallel remove {context}` will remove context from your `context folder` to stack that will be executed
+* `abst parallel run {context}` will run all the stacked contexts
+* `abst parallel display` will display current stacked contexts
 
 <hr>
 Did I made your life less painful ? 
