@@ -34,7 +34,7 @@ class Bastion:
             rich.print(f"Failed to decode json: '{res}'")
 
     def get_print_name(self):
-        return self.context_name if self.context_name else ""
+        return self.context_name if self.context_name else "default"
 
     def kill(self):
         print(f"Killing Bastion {self.get_print_name()} SSH Tunnel")
