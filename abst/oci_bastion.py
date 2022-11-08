@@ -10,7 +10,8 @@ from typing import Optional
 
 import rich
 
-from abst.config import default_creds_path, default_contexts_location, default_conf_path, \
+from abst.config import default_creds_path, \
+    default_contexts_location, default_conf_path, \
     default_conf_contents
 from abst.wrappers import mark_on_exit
 
@@ -62,7 +63,7 @@ class Bastion:
     def create_managed_loop(self, shell: bool = False):
         Bastion.shell = shell
         print(f"Loading Credentials {self.get_print_name()}")
-        creds = self.handle_creds_load()
+        creds = self.load_self_creds()
 
         try:
             res = self.create_bastion_ssh_session_managed(creds)
@@ -117,7 +118,7 @@ class Bastion:
     def create_forward_loop(self, shell: bool = False):
         Bastion.shell = shell
         print(f"Loading Credentials for {self.get_print_name()}")
-        creds = self.handle_creds_load()
+        creds = self.load_self_creds()
 
         try:
             host, ip, port, res = self.create_bastion_forward_port_session(creds)
@@ -222,9 +223,9 @@ class Bastion:
         else:
             return default_contexts_location / (self.context_name + ".json")
 
-    def handle_creds_load(self):
+    def load_self_creds(self):
         try:
-            return self.load_creds_json(self.get_creds_path())
+            return self.load_json(self.get_creds_path())
         except FileNotFoundError:
             td = self.generate_sample_dict()
 
@@ -238,10 +239,10 @@ class Bastion:
 
     @classmethod
     def load_config(cls):
-        return cls.load_creds_json(default_conf_path)
+        return cls.load_json(default_conf_path)
 
     @classmethod
-    def load_creds_json(cls, path=default_creds_path) -> dict:
+    def load_json(cls, path=default_creds_path) -> dict:
         with open(str(path), "r") as f:
             creds = json.load(f)
             if "delete_this" in creds.keys():

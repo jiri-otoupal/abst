@@ -21,3 +21,11 @@ def resolve_context(func):
             func(*args)
 
     return wrapper
+
+
+def load_stack_decorator(func):
+    def wrapper(*args, **kwargs):
+        args[0].load_stack()
+        func(*args, **kwargs)
+
+    return wrapper

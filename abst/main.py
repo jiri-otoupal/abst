@@ -26,6 +26,55 @@ def config():
     pass
 
 
+@cli.group(help="Parallel Bastion Control group")
+def parallel():
+    """
+    Only Port Forwarded sessions are supported
+
+    This makes it possible to run multiple forward sessions of multiple context in
+     the same time, useful when working with multiple clusters
+    """
+    pass
+
+
+@parallel.command("add", help="Add Bastion to stack")
+@click.option("--debug", is_flag=True, default=False)
+@click.argument("context-name", default="default")
+def add(debug, context_name):
+    setup_debug(debug)
+
+    BastionScheduler.add_bastion(context_name)
+
+
+@parallel.command("remove", help="Remove Bastion from stack")
+@click.option("--debug", is_flag=True, default=False)
+@click.argument("context-name", default="default")
+def remove(debug, context_name):
+    setup_debug(debug)
+    BastionScheduler.remove_bastion(context_name)
+
+
+@parallel.command("run", help="Run All Bastions in fullauto")
+@click.option("--debug", is_flag=True, default=False)
+def run(debug):
+    setup_debug(debug)
+
+
+@parallel.command("display", help="Display current Bastions is stack")
+@click.option("--debug", is_flag=True, default=False)
+def display(debug):
+    setup_debug(debug)
+
+    rich.print("Current Bastions in Stack:")
+    for bastion in BastionScheduler.get_bastions():
+        conf = bastion.load_self_creds()
+        rich.print(
+            f"Bastion: [green]{bastion.context_name}[/green] "
+            f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red]"
+            f"Target: [orange]{conf.get('target-ip', 'Not Specified')}"
+            f":{conf.get('target-port', 'Not Specified')}[/orange]")
+
+
 @cli.command("use",
              help="Will Switch context to be used,"
                   " use default for default context specified"
@@ -85,7 +134,7 @@ def fill(debug, context_name):
     rich.print("Please fill field one by one as displayed")
     n_dict = dict()
 
-    creds_json_ro = Bastion.load_creds_json(path)
+    creds_json_ro = Bastion.load_json(path)
 
     for key, value in creds_json_ro.items():
         n_dict[key] = inquirer.text(message=f"{key.capitalize()}:",
