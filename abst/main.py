@@ -58,6 +58,7 @@ def remove(debug, context_name):
 @click.option("--debug", is_flag=True, default=False)
 def run(debug):
     setup_debug(debug)
+    BastionScheduler.run()
 
 
 @parallel.command("display", help="Display current Bastions is stack")
