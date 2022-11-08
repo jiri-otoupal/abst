@@ -13,5 +13,5 @@ __description__ = (
 __version__ = "1.4.4"
 __author__ = "Jiri Otoupal"
 __author_email__ = "jiri-otoupal@ips-database.eu"
-__license__ = "Apache 2.0"
+__license__ = "MIT"
 __url__ = "https://github.com/jiri-otoupal/abst"

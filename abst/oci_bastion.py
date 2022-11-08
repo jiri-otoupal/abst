@@ -6,21 +6,25 @@ import subprocess
 from json import JSONDecodeError
 from pathlib import Path
 from time import sleep
+from typing import Optional
 
 import rich
 
-from abst.config import default_creds_path
+from abst.config import default_creds_path, default_contexts_location, default_conf_path, \
+    default_conf_contents
+from abst.wrappers import mark_on_exit
 
 
 class Bastion:
-    shell: bool = False
-    connected: bool = False
-    active_tunnel: subprocess.Popen = None
-    response: dict = None
+    def __init__(self, context_name=None):
+        self.context_name = context_name
+        self.shell: bool = False
+        self.connected: bool = False
+        self.active_tunnel: subprocess.Popen = Optional[None]
+        self.response: Optional[dict] = None
 
-    @classmethod
-    def get_bastion_state(cls) -> dict:
-        bastion_id = cls.response["data"]["id"]
+    def get_bastion_state(self) -> dict:
+        bastion_id = self.response["data"]["id"]
         get_state_arg_str = f"oci bastion session get --session-id {bastion_id}"
         res = subprocess.check_output(get_state_arg_str.split())
         try:
@@ -28,18 +32,20 @@ class Bastion:
         except JSONDecodeError:
             rich.print(f"Failed to decode json: '{res}'")
 
-    @classmethod
-    def kill_bastion(cls, a=None, b=None, c=None):
-        print("Killing Bastion SSH Tunnel")
+    def get_print_name(self):
+        return self.context_name if self.context_name else ""
+
+    def kill(self):
+        print(f"Killing Bastion {self.get_print_name()} SSH Tunnel")
         try:
-            cls.active_tunnel.send_signal(signal.SIGTERM)
-            sess_id = cls.response["data"]["id"]
-            print("Cleaning")
-            out = cls.delete_bastion_session(sess_id)
+            self.active_tunnel.send_signal(signal.SIGTERM)
+            sess_id = self.response["data"]["id"]
+            print(f"Cleaning {self.get_print_name()}")
+            out = self.delete_bastion_session(sess_id)
             rich.print(out)
-            print("Removed Session")
+            print(f"Removed Session {self.get_print_name()}")
         except Exception:
-            print("Looks like Bastion is already deleted")
+            print(f"Looks like Bastion is already deleted {self.get_print_name()}")
         finally:
             exit(0)
 
@@ -52,26 +58,31 @@ class Bastion:
             "utf-8")
         return out
 
-    @classmethod
-    def create_managed_loop(cls, shell: bool = False):
+    @mark_on_exit
+    def create_managed_loop(self, shell: bool = False):
         Bastion.shell = shell
-        print("Loading Credentials")
-        creds = cls.handle_creds_load()
+        print(f"Loading Credentials {self.get_print_name()}")
+        creds = self.handle_creds_load()
 
         try:
-            res = cls.create_bastion_ssh_session_managed(creds)
+            res = self.create_bastion_ssh_session_managed(creds)
         except subprocess.CalledProcessError as ex:
-            rich.print(f"[red]Invalid Config in abst[/red]")
+            logging.debug(f"Exception {ex}")
+            rich.print(f"[red]Invalid Config in abst {self.get_print_name()}[/red]")
             exit(1)
+            return  # Just for Pycharm
 
-        bid, response = cls.load_response(res)
+        bid, response = self.load_response(res)
 
         if bid is None:
-            rich.print(f"Failed to Create Bastion with response '{response}'")
+            rich.print(
+                f"Failed to Create Bastion {self.get_print_name()} with response"
+                f" '{response}'")
             return
         else:
             rich.print(
-                f"Created Session with id '{bid}' on Bastion '{response['data']['bastion-name']}'")
+                f"Created Session with id '{bid}' on Bastion {self.get_print_name()} "
+                f"'{response['data']['bastion-name']}'")
 
         rich.print("Auto resolving target details from response")
         host = creds["host"]
@@ -79,97 +90,100 @@ class Bastion:
         ip = target_details["target-resource-private-ip-address"]
         port = target_details["target-resource-port"]
 
-        cls.wait_for_prepared()
+        self.wait_for_prepared()
 
         sleep(1)  # Precaution
 
-        ssh_tunnel_args = cls.run_ssh_tunnel_managed_session(bid, host,
-                                                             creds["private-key-path"],
-                                                             creds["resource-os-username"],
-                                                             ip, port,
-                                                             shell)
+        ssh_tunnel_args = self.run_ssh_tunnel_managed_session(bid, host,
+                                                              creds["private-key-path"],
+                                                              creds[
+                                                                  "resource-os-username"],
+                                                              ip, port,
+                                                              shell)
 
-        while status := (sdata := cls.get_bastion_state()["data"])["lifecycle-state"] == "ACTIVE":
-            deleted = cls.connect_till_deleted(sdata, ssh_tunnel_args, status, shell, True)
+        while status := (sdata := self.get_bastion_state()["data"])[
+                            "lifecycle-state"] == "ACTIVE":
+            deleted = self.connect_till_deleted(sdata, ssh_tunnel_args, status, shell,
+                                                True)
 
             if deleted:
-                print("Bastion Session got deleted")
+                print(f"Bastion {self.get_print_name()} Session got deleted")
                 return
 
-        print("SSH Tunnel Terminated")
-        Bastion.kill_bastion()
+        print(f"SSH Tunnel for {self.get_print_name()} Terminated")
+        self.kill()
 
-    @classmethod
-    def create_forward_loop(cls, shell: bool = False):
+    @mark_on_exit
+    def create_forward_loop(self, shell: bool = False):
         Bastion.shell = shell
-        print("Loading Credentials")
-        creds = cls.handle_creds_load()
+        print(f"Loading Credentials for {self.get_print_name()}")
+        creds = self.handle_creds_load()
 
         try:
-            host, ip, port, res = cls.create_bastion_forward_port_session(creds)
+            host, ip, port, res = self.create_bastion_forward_port_session(creds)
         except subprocess.CalledProcessError as ex:
+            logging.debug(f"Exception {ex}")
             rich.print(f"[red]Invalid Config in abst[/red]")
             exit(1)
+            return  # Just for Pycharm
 
-        bid, response = cls.load_response(res)
+        bid, response = self.load_response(res)
 
         if bid is None:
-            rich.print(f"Failed to Create Bastion with response '{response}'")
+            rich.print(f"Failed to Create Bastion {self.get_print_name()}"
+                       f" with response '{response}'")
             return
         else:
-            rich.print(f"Created Session with id '{bid}'")
+            rich.print(f"Created Session for {self.get_print_name()} with id '{bid}'")
 
-        cls.wait_for_prepared()
+        self.wait_for_prepared()
 
         sleep(1)  # Precaution
 
-        ssh_tunnel_arg_str = cls.run_ssh_tunnel_port_forward(bid, host, ip, port,
-                                                             shell, creds.get("local-port", 22))
+        ssh_tunnel_arg_str = self.run_ssh_tunnel_port_forward(bid, host, ip, port,
+                                                              shell,
+                                                              creds.get("local-port", 22))
 
-        while status := (sdata := cls.get_bastion_state()["data"])[
+        while status := (sdata := self.get_bastion_state()["data"])[
                             "lifecycle-state"] == "ACTIVE":
-            deleted = cls.connect_till_deleted(sdata, ssh_tunnel_arg_str, status, shell)
+            deleted = self.connect_till_deleted(sdata, ssh_tunnel_arg_str, status, shell)
 
             if deleted:
-                print("Bastion Session got deleted")
+                print(f"Bastion Session {self.get_print_name()} got deleted")
                 return
 
-        print("SSH Tunnel Terminated")
-        Bastion.kill_bastion()
+        print(f"SSH Tunnel for {self.get_print_name()} Terminated")
+        self.kill()
 
-    @classmethod
-    def run_ssh_tunnel_managed_session(cls, bid, host, priv_key_path, username,
+    def run_ssh_tunnel_managed_session(self, bid, host, private_key_path, username,
                                        ip, port,
                                        shell):
-        print("Bastion initialized")
-        print("Initializing SSH Tunnel")
+        print(f"Bastion {self.get_print_name()} initialized")
+        print(f"Initializing SSH Tunnel for {self.get_print_name()}")
 
-        ssh_tunnel_args = [f"ssh", "-i", f"{priv_key_path}", "-o",
-                           f"ProxyCommand='ssh -i {priv_key_path} -W %h:%p -p {port} {bid}@{host} -A'",
+        ssh_tunnel_args = [f"ssh", "-i", f"{private_key_path}", "-o",
+                           f"ProxyCommand='ssh -i {private_key_path} -W %h:%p -p {port} "
+                           f"{bid}@{host} -A'",
                            "-p", f"{port}", f"{username}@{ip}", "-vvv", "-A"]
-        cls.__run_ssh_tunnel(ssh_tunnel_args, shell, already_split=True)
+        self.__run_ssh_tunnel(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args
 
-    @classmethod
-    def \
-            run_ssh_tunnel_port_forward(cls, bid, host, ip, port, shell, local_port):
-        print("Bastion initialized")
-        print("Initializing SSH Tunnel")
+    def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port):
+        print(f"Bastion {self.get_print_name()} initialized")
+        print(f"Initializing SSH Tunnel for {self.get_print_name()}")
         ssh_tunnel_arg_str = f"ssh -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} -vvv"
-        cls.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
+        self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
         return ssh_tunnel_arg_str
 
-    @classmethod
-    def wait_for_prepared(cls):
-        print("Waiting for Bastion to initialize")
-        while cls.get_bastion_state()["data"]["lifecycle-state"] != "ACTIVE":
+    def wait_for_prepared(self):
+        print(f"Waiting for Bastion {self.get_print_name()} to initialize")
+        while self.get_bastion_state()["data"]["lifecycle-state"] != "ACTIVE":
             sleep(1)
 
-    @classmethod
-    def load_response(cls, res):
+    def load_response(self, res):
         response = None
         try:
-            cls.response = response = json.loads(res)
+            self.response = response = json.loads(res)
             logging.debug(f"Server Response: {response}")
         except JSONDecodeError:
             rich.print(f"Failed to decode json: {res}")
@@ -177,41 +191,44 @@ class Bastion:
 
         return bid, response
 
-    @classmethod
-    def create_bastion_forward_port_session(cls, creds):
-        ssh_key_path = cls.get_ssh_pub_key_path(creds)
-        res = cls.__create_bastion_session_port_forward(creds["bastion-id"],
-                                                        creds["target-ip"],
-                                                        creds["default-name"],
-                                                        creds["target-port"],
-                                                        ssh_key_path,
-                                                        creds["ttl"], False)
+    def create_bastion_forward_port_session(self, creds):
+        ssh_key_path = self.get_ssh_pub_key_path(creds)
+        res = self.__create_bastion_session_port_forward(creds["bastion-id"],
+                                                         creds["target-ip"],
+                                                         creds["default-name"],
+                                                         creds["target-port"],
+                                                         ssh_key_path,
+                                                         creds["ttl"], False)
         return creds["host"], creds["target-ip"], creds["target-port"], res
 
-    @classmethod
-    def create_bastion_ssh_session_managed(cls, creds):
-        ssh_key_path = cls.get_ssh_pub_key_path(creds)
+    def create_bastion_ssh_session_managed(self, creds):
+        ssh_key_path = self.get_ssh_pub_key_path(creds)
         try:
-            res = cls.__create_bastion_ssh_session_managed(creds["bastion-id"],
-                                                           creds["resource-id"],
-                                                           creds["default-name"],
-                                                           creds["resource-os-username"],
-                                                           ssh_key_path,
-                                                           creds["ttl"], False
-                                                           )
+            res = self.__create_bastion_ssh_session_managed(creds["bastion-id"],
+                                                            creds["resource-id"],
+                                                            creds["default-name"],
+                                                            creds["resource-os-username"],
+                                                            ssh_key_path,
+                                                            creds["ttl"], False
+                                                            )
             return res
         except KeyError as ex:
-            rich.print(f"Missing filled out parameter {ex}")
+            rich.print(f"Missing filled out parameter for '{self.get_print_name()}' {ex}")
             exit(1)
 
-    @classmethod
-    def handle_creds_load(cls):
-        try:
-            return cls.load_creds_json()
-        except FileNotFoundError:
-            td = cls.generate_sample_dict()
+    def get_creds_path(self) -> Path:
+        if self.context_name is None:
+            return default_creds_path
+        else:
+            return default_contexts_location / (self.context_name + ".json")
 
-            creds_path = cls.write_creds_json(td)
+    def handle_creds_load(self):
+        try:
+            return self.load_creds_json(self.get_creds_path())
+        except FileNotFoundError:
+            td = self.generate_sample_dict()
+
+            creds_path = self.write_creds_json(td, self.get_creds_path())
 
             rich.print(
                 f"Sample credentials generated, please fill 'creds.json' in {creds_path}"
@@ -220,27 +237,36 @@ class Bastion:
             exit(1)
 
     @classmethod
-    def load_creds_json(cls) -> dict:
-        with open(str(default_creds_path), "r") as f:
+    def load_config(cls):
+        return cls.load_creds_json(default_conf_path)
+
+    @classmethod
+    def load_creds_json(cls, path=default_creds_path) -> dict:
+        with open(str(path), "r") as f:
             creds = json.load(f)
             if "delete_this" in creds.keys():
-                raise Exception("Delete This Tag not removed! Please Remove Before continue")
+                rich.print(
+                    f"[red]'Delete This' Tag not removed! Please Remove it in {path} "
+                    f"before continuing[/red]")
+                exit(1)
             logging.debug(f"Loaded Credentials {creds}")
         return creds
 
     @classmethod
     def create_default_location(cls):
+        if not default_conf_path.exists():
+            cls.write_creds_json(default_conf_contents, default_conf_path)
         Path(default_creds_path.parent).mkdir(exist_ok=True)
+        Path(default_contexts_location).mkdir(exist_ok=True)
 
     @classmethod
-    def write_creds_json(cls, td: dict):
-        creds_path = default_creds_path
-        with open(str(creds_path), "w") as f:
+    def write_creds_json(cls, td: dict, path: Path):
+        with open(str(path), "w") as f:
             json.dump(td, f, indent=4)
-        return creds_path
+        return path
 
-    @classmethod
-    def connect_till_deleted(cls, sdata, ssh_tunnel_arg_str, status, shell, already_split=False):
+    def connect_till_deleted(self, sdata, ssh_tunnel_arg_str, status, shell,
+                             already_split=False):
         """
         Will connect to session and reconnect every time it disconnect until session is
         deleted :param shell: If you use shell environment (can have different impacts on
@@ -248,14 +274,16 @@ class Bastion:
         """
         for i in range(1, 3):
             if not status:
-                rich.print(f"Trying another time {i}/3")
-                status = cls.__run_ssh_tunnel(ssh_tunnel_arg_str, shell, already_split)
+                rich.print(f"({self.get_print_name()}) Trying another time {i}/3")
+                status = self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell, already_split)
             else:
                 break
 
         # Proceed with check for disconnect or termination, after process termination
-        if not cls.connected and status:
-            rich.print(f"Checking for idle termination, Bastion Active? {status}")
+        if not self.connected and status:
+            rich.print(
+                f"Checking for idle termination, Bastion {self.get_print_name()} "
+                f"Active? {status}")
             created_time = datetime.datetime.fromisoformat(
                 sdata["time-created"]).astimezone(
                 datetime.timezone.utc)
@@ -265,12 +293,15 @@ class Bastion:
             delta = ttl_max - ttl_now.seconds
             if delta > 0:
                 print(
+                    f"Bastion {self.get_print_name()} "
                     f"Current session {delta} seconds remaining ({ttl_now}) "
                     f"reconnecting")
-                cls.__run_ssh_tunnel(ssh_tunnel_arg_str, shell, already_split)
+                self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell, already_split)
                 return False
             else:
-                print("Bastion Session TTL run out, please start create new one")
+                print(
+                    f"Bastion {self.get_print_name()} "
+                    f"Session TTL run out, please start create new one")
                 return True
 
     @classmethod
@@ -332,12 +363,12 @@ class Bastion:
                                  "// This is required only for Managed SSH session"
         return td
 
-    @classmethod
-    def __run_ssh_tunnel(cls, ssh_tunnel_arg_str, shell, already_split=False):
+    def __run_ssh_tunnel(self, ssh_tunnel_arg_str, shell, already_split=False):
         """
 
         :param ssh_tunnel_arg_str: String for ssh tunnel creation
-        :param shell: If you use shell environment (can have different impacts on MAC and LINUX)
+        :param shell: If you use shell environment (can have different impacts on MAC and
+         LINUX)
         :return:
         """
         if not already_split and not shell:
@@ -350,11 +381,13 @@ class Bastion:
             else:
                 args_split = ssh_tunnel_arg_str
 
-        logging.debug(f'SSH Tunnel command: {" ".join(args_split) if not shell else args_split}')
+        logging.debug(
+            f'({self.get_print_name()}) SSH Tunnel command: '
+            f'{" ".join(args_split) if not shell else args_split}')
 
         p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, shell=shell)
-        cls.active_tunnel = p
+        self.active_tunnel = p
         while p.poll() is None:
             line = p.stdout.readline().decode("utf-8").strip()
             line_err = None
@@ -363,29 +396,38 @@ class Bastion:
                 line_err = p.stderr.readline().decode("utf-8").strip()
 
             if line:
-                logging.debug(f"SSH stdout: {line}")
+                logging.debug(f"({self.get_print_name()}) SSH stdout: {line}")
             if line_err:
-                logging.debug(f"SSH stderr: {line_err}")
+                logging.debug(f"({self.get_print_name()}) SSH stderr: {line_err}")
 
             if "Permission denied" in line:
-                cls.connected = False
+                self.connected = False
                 return False
             if "pledge:" in line:
-                rich.print("Success !")
-                rich.print(f"SSH Tunnel Running from {datetime.datetime.now()}")
-                cls.connected = True
+                rich.print(f"({self.get_print_name()}) Success !")
+                rich.print(
+                    f"({self.get_print_name()}) SSH Tunnel Running from "
+                    f"{datetime.datetime.now()}")
+                self.connected = True
 
             if not line and not line_err:
                 sleep(0.1)
 
-        logging.debug("Waiting for ssh tunnel to end")
+        logging.debug(f"({self.get_print_name()}) Waiting for ssh tunnel to end")
         p.wait()
-        logging.debug(f"SSH Tunnel Process ended with exit code {p.returncode}")
+        logging.debug(
+            f"({self.get_print_name()}) SSH Tunnel Process ended with exit code "
+            f"{p.returncode}")
+
         if p.returncode == 255:
-            rich.print("SSH Tunnel can not be initialized because of failed authorization")
-            rich.print("Please check you configuration, for more info use --debug flag")
-            Bastion.kill_bastion()
+            rich.print(
+                f"({self.get_print_name()}) "
+                f"SSH Tunnel can not be initialized because of failed authorization")
+            rich.print(
+                f"({self.get_print_name()}) "
+                f"Please check you configuration, for more info use --debug flag")
+            self.kill()
             exit(255)
 
-        cls.connected = False
+        self.connected = False
         return True
