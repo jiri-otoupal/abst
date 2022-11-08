@@ -12,7 +12,7 @@ from abst.bastion_scheduler import BastionScheduler
 from abst.cfg_func import __upgrade
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
 from abst.oci_bastion import Bastion
-from abst.tools import get_context_path
+from abst.tools import get_context_path, display_scheduled
 
 
 @click.group()
@@ -51,6 +51,7 @@ def add(debug, context_name):
     setup_debug(debug)
 
     BastionScheduler.add_bastion(context_name)
+    display_scheduled()
 
 
 @parallel.command("remove", help="Remove Bastion from stack")
@@ -59,12 +60,19 @@ def add(debug, context_name):
 def remove(debug, context_name):
     setup_debug(debug)
     BastionScheduler.remove_bastion(context_name)
+    display_scheduled()
 
 
 @parallel.command("run", help="Run All Bastions in fullauto")
 @click.option("--debug", is_flag=True, default=False)
 def run(debug):
     setup_debug(debug)
+    display_scheduled()
+    confirm = inquirer.confirm(
+        "Do you really want to run following contexts?").execute()
+    if not confirm:
+        rich.print("[green]Cancelling, nothing started[/green]")
+        exit(0)
     BastionScheduler.run()
 
 
@@ -73,14 +81,7 @@ def run(debug):
 def display(debug):
     setup_debug(debug)
 
-    rich.print("Current Bastions in Stack:")
-    for context_name in BastionScheduler.get_bastions():
-        conf = Bastion.load_json(Bastion.get_creds_path_resolve(context_name))
-        rich.print(
-            f"Bastion: [green]{context_name}[/green] "
-            f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red] "
-            f"Target: [orange]{conf.get('target-ip', 'Not Specified')}"
-            f":{conf.get('target-port', 'Not Specified')}[/orange]")
+    display_scheduled()
 
 
 @cli.command("use",
@@ -202,7 +203,7 @@ def clean():
     try:
         confirm = inquirer.confirm(
             "Do you really want to Delete all Creds file ? All of credentials will be "
-            "lost")
+            "lost").execute()
         if not confirm:
             rich.print("[green]Cancelling, nothing changed[/green]")
             exit(0)
