@@ -18,7 +18,7 @@ def resolve_context(func):
             conf = Bastion.load_config()
             func(args[0], conf["used_context"], **kwargs)
         else:
-            func(*args)
+            return func(*args)
 
     return wrapper
 
@@ -26,6 +26,6 @@ def resolve_context(func):
 def load_stack_decorator(func):
     def wrapper(*args, **kwargs):
         args[0].load_stack()
-        func(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return wrapper

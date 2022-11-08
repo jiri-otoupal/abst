@@ -17,6 +17,8 @@ from abst.wrappers import mark_on_exit
 
 
 class Bastion:
+    session_list = []
+
     def __init__(self, context_name=None):
         self.context_name = context_name
         self.shell: bool = False
@@ -41,6 +43,7 @@ class Bastion:
         try:
             self.active_tunnel.send_signal(signal.SIGTERM)
             sess_id = self.response["data"]["id"]
+            Bastion.session_list.remove(sess_id)
             print(f"Cleaning {self.get_print_name()}")
             out = self.delete_bastion_session(sess_id)
             rich.print(out)
@@ -181,10 +184,14 @@ class Bastion:
         while self.get_bastion_state()["data"]["lifecycle-state"] != "ACTIVE":
             sleep(1)
 
+    @classmethod
+    def parse_response(cls, res):
+        return json.loads(res)
+
     def load_response(self, res):
         response = None
         try:
-            self.response = response = json.loads(res)
+            self.response = response = Bastion.parse_response(res)
             logging.debug(f"Server Response: {response}")
         except JSONDecodeError:
             rich.print(f"Failed to decode json: {res}")
@@ -194,12 +201,20 @@ class Bastion:
 
     def create_bastion_forward_port_session(self, creds):
         ssh_key_path = self.get_ssh_pub_key_path(creds)
+
         res = self.__create_bastion_session_port_forward(creds["bastion-id"],
                                                          creds["target-ip"],
-                                                         creds["default-name"],
+                                                         f'{creds["default-name"]}-ctx-'
+                                                         f'{self.get_print_name()}',
                                                          creds["target-port"],
                                                          ssh_key_path,
                                                          creds["ttl"], False)
+        try:
+            trs = Bastion.parse_response(res)
+            Bastion.session_list.append(trs["data"]["id"])
+            logging.debug(f"Added session id of {self.context_name}")
+        except:
+            pass
         return creds["host"], creds["target-ip"], creds["target-port"], res
 
     def create_bastion_ssh_session_managed(self, creds):
@@ -207,15 +222,29 @@ class Bastion:
         try:
             res = self.__create_bastion_ssh_session_managed(creds["bastion-id"],
                                                             creds["resource-id"],
-                                                            creds["default-name"],
+                                                            f'{creds["default-name"]}-ctx-'
+                                                            f'{self.get_print_name()}',
                                                             creds["resource-os-username"],
                                                             ssh_key_path,
                                                             creds["ttl"], False
                                                             )
+            try:
+                trs = Bastion.parse_response(res)
+                Bastion.session_list.append(trs["data"]["id"])
+                logging.debug(f"Added session id of {self.context_name}")
+            except:
+                pass
             return res
         except KeyError as ex:
             rich.print(f"Missing filled out parameter for '{self.get_print_name()}' {ex}")
             exit(1)
+
+    @classmethod
+    def get_creds_path_resolve(cls, context_name) -> Path:
+        if context_name is None or context_name == "default":
+            return default_creds_path
+        else:
+            return default_contexts_location / (context_name + ".json")
 
     def get_creds_path(self) -> Path:
         if self.context_name is None:

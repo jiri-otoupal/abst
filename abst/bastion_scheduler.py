@@ -1,3 +1,4 @@
+import signal
 from threading import Thread
 from time import sleep
 
@@ -35,6 +36,12 @@ class BastionScheduler:
             print("Already in stack")
             return
 
+        if context_name != "default" and context_name not in [name.name.replace(".json", "") for
+                                                              name in
+                                                              default_contexts_location.iterdir()]:
+            print(f"No context with name {context_name}")
+            return
+
         if (res := cls.local_port_in_stack(context_name))[0]:
             rich.print(
                 f"[red]Local port is already taken by {res[1].context_name}[/red]")
@@ -58,12 +65,14 @@ class BastionScheduler:
     def __display(cls):
         for bastion in cls.__live_stack:
             conf = bastion.load_self_creds()
-            active = bastion.connected and bastion.active_tunnel
-            color = {'green' if active else 'orange'}
+            active = bastion.connected and bastion.active_tunnel.poll() is None
+            name = "default" if bastion.context_name is None else bastion.context_name
             rich.print(
-                f"Bastion: [green]{bastion.context_name}[/green] "
-                f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red]"
-                f"Active: [{color}]{active}[/{color}]")
+                f"Bastion: [green]{name}[/green] "
+                f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red] "
+                f"Active: {active}")
+        rich.print(2 * "\n")
+        rich.print(50 * "-")
 
     @classmethod
     def __display_loop(cls):
@@ -75,11 +84,13 @@ class BastionScheduler:
     @classmethod
     @load_stack_decorator
     def run(cls):
+        signal.signal(signal.SIGINT, BastionScheduler.kill_all)
+        signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
         rich.print("Will run all Bastions in parallel")
         thread_list = []
 
         for context_name in cls.__dry_stack:
-            bastion = Bastion(context_name)
+            bastion = Bastion(None if context_name == "default" else context_name)
             cls.__live_stack.add(bastion)
             t = Thread(name=context_name, target=bastion.create_forward_loop, daemon=True)
             thread_list.append(t)
@@ -88,28 +99,33 @@ class BastionScheduler:
 
         Thread(name="Display", target=cls.__display_loop, daemon=True).start()
 
-        for t in thread_list:
-            if t.is_alive():
-                t.join()
-
-        rich.print("All Bastion threads died")
+        while True:
+            sleep(1)
 
     @classmethod
     @load_stack_decorator
     def local_port_in_stack(cls, context_name: str):
-        instance_creds = Bastion.load_json(default_contexts_location /
-                                           (context_name + ".json"))
-        for bastion in cls.__dry_stack:
-            b_creds = bastion.load_self_creds()
+        path = Bastion.get_creds_path_resolve(context_name)
+        instance_creds = Bastion.load_json(path)
+        for context_name in cls.__dry_stack:
+            b_creds = Bastion.load_json(Bastion.get_creds_path_resolve(context_name))
             if b_creds["local-port"] == instance_creds["local-port"]:
-                return True, bastion
+                return True, context_name
         return False, None
 
     @classmethod
     def kill_all(cls, a=None, b=None, c=None):
         # This should be only executed in running state
-        for bastion in cls.__live_stack:
-            bastion.kill()
+        for i, sess in enumerate(Bastion.session_list):
+            try:
+                print(f"Killing {sess}")
+                out = Bastion.delete_bastion_session(sess)
+                rich.print(out)
+            except Exception:
+                print(f"Looks like Bastion is already deleted {sess}")
+            finally:
+                print(f"Deleting {i + 1}/{len(Bastion.session_list)}")
+        exit(0)
 
     @classmethod
     @load_stack_decorator

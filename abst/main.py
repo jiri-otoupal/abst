@@ -13,7 +13,6 @@ from abst.cfg_func import __upgrade
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
 from abst.oci_bastion import Bastion
 from abst.tools import get_context_path
-from abst.wrappers import resolve_context
 
 
 @click.group()
@@ -41,6 +40,14 @@ def parallel():
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default="default")
 def add(debug, context_name):
+    """
+    Add Bastions to stack
+
+    use default for adding default cluster ! this is reserved name !
+    :param debug:
+    :param context_name:
+    :return:
+    """
     setup_debug(debug)
 
     BastionScheduler.add_bastion(context_name)
@@ -67,11 +74,11 @@ def display(debug):
     setup_debug(debug)
 
     rich.print("Current Bastions in Stack:")
-    for bastion in BastionScheduler.get_bastions():
-        conf = bastion.load_self_creds()
+    for context_name in BastionScheduler.get_bastions():
+        conf = Bastion.load_json(Bastion.get_creds_path_resolve(context_name))
         rich.print(
-            f"Bastion: [green]{bastion.context_name}[/green] "
-            f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red]"
+            f"Bastion: [green]{context_name}[/green] "
+            f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red] "
             f"Target: [orange]{conf.get('target-ip', 'Not Specified')}"
             f":{conf.get('target-port', 'Not Specified')}[/orange]")
 
@@ -235,7 +242,6 @@ def managed():
     pass
 
 
-@resolve_context
 @forward.command("single",
                  help="Creates only one bastion session and keeps reconnecting until"
                       " its deleted, does not create any more Bastion sessions")
@@ -247,10 +253,15 @@ def single_forward(shell, debug, context_name):
      ,connects and reconnects until its ttl runs out"""
     setup_debug(debug)
 
-    Bastion(context_name).create_forward_loop(shell=shell)
+    if context_name is None:
+        conf = Bastion.load_config()
+        used_name = conf["used_context"]
+    else:
+        used_name = context_name
+
+    Bastion(used_name).create_forward_loop(shell=shell)
 
 
-@resolve_context
 @forward.command("fullauto",
                  help="Creates and connects to Bastion session indefinitely until "
                       "terminated by user")
@@ -262,14 +273,18 @@ def fullauto_forward(shell, debug, context_name):
      automatically until terminated"""
 
     setup_debug(debug)
+    if context_name is None:
+        conf = Bastion.load_config()
+        used_name = conf["used_context"]
+    else:
+        used_name = context_name
 
     while True:
-        Bastion(context_name).create_forward_loop(shell=shell)
+        Bastion(used_name).create_forward_loop(shell=shell)
 
         sleep(1)
 
 
-@resolve_context
 @managed.command("single",
                  help="Creates only one bastion session and keeps reconnecting until"
                       " its deleted, does not create any more Bastion sessions")
@@ -280,11 +295,15 @@ def single_managed(shell, debug, context_name):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
     setup_debug(debug)
+    if context_name is None:
+        conf = Bastion.load_config()
+        used_name = conf["used_context"]
+    else:
+        used_name = context_name
 
-    Bastion(context_name).create_managed_loop(shell=shell)
+    Bastion(used_name).create_managed_loop(shell=shell)
 
 
-@resolve_context
 @managed.command("fullauto",
                  help="Creates and connects to Bastion session indefinitely until "
                       "terminated by user")
@@ -296,8 +315,14 @@ def fullauto_managed(shell, debug, context_name):
      automatically until terminated"""
     setup_debug(debug)
 
+    if context_name is None:
+        conf = Bastion.load_config()
+        used_name = conf["used_context"]
+    else:
+        used_name = context_name
+
     while True:
-        Bastion(context_name).create_managed_loop(shell=shell)
+        Bastion(used_name).create_managed_loop(shell=shell)
 
         sleep(1)
 
