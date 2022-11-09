@@ -36,9 +36,10 @@ class BastionScheduler:
             print("Already in stack")
             return
 
-        if context_name != "default" and context_name not in [name.name.replace(".json", "") for
-                                                              name in
-                                                              default_contexts_location.iterdir()]:
+        if context_name != "default" and context_name not in [
+            name.name.replace(".json", "") for
+            name in
+            default_contexts_location.iterdir()]:
             print(f"No context with name {context_name}")
             return
 
@@ -82,6 +83,11 @@ class BastionScheduler:
             sleep(3)
 
     @classmethod
+    def _run_indefinitely(cls, func):
+        while True:
+            func()
+
+    @classmethod
     @load_stack_decorator
     def run(cls):
         signal.signal(signal.SIGINT, BastionScheduler.kill_all)
@@ -92,15 +98,16 @@ class BastionScheduler:
         for context_name in cls.__dry_stack:
             bastion = Bastion(None if context_name == "default" else context_name)
             cls.__live_stack.add(bastion)
-            t = Thread(name=context_name, target=bastion.create_forward_loop, daemon=True)
+            t = Thread(name=context_name, target=cls._run_indefinitely,
+                       args=[bastion.create_forward_loop], daemon=True)
             thread_list.append(t)
             t.start()
             rich.print(f"Started {context_name}")
 
         Thread(name="Display", target=cls.__display_loop, daemon=True).start()
 
-        while True:
-            sleep(1)
+        for thread in thread_list:
+            thread.join()
 
     @classmethod
     @load_stack_decorator
