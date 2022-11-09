@@ -86,6 +86,7 @@ class BastionScheduler:
     def _run_indefinitely(cls, func):
         while True:
             func()
+            sleep(1)
 
     @classmethod
     @load_stack_decorator
