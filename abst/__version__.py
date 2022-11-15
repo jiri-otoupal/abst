@@ -7,7 +7,7 @@ Information about the current version of the py-package-template package.
 
 __title__ = "abst"
 __description__ = (
-    "CLI Command making OCI Bastion simple and fast"
+    "CLI Command making OCI Bastion and kubernetes usage simple and fast"
 )
 
 __version__ = "1.5.2a1"
