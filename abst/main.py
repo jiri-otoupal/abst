@@ -336,7 +336,7 @@ def ssh_pod(pod_name):
     try:
         rich.print("Fetching pods")
         pod_lines = subprocess.check_output(
-            f"kubectl get pods".split(" ")).decode().split(
+            f"kubectl get pods -A".split(" ")).decode().split(
             "\n")
     except FileNotFoundError:
         rich.print("[red]kubectl not found on this machine[/red]")
