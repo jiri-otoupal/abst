@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import subprocess
 from time import sleep
 
 import click
@@ -326,6 +327,36 @@ def fullauto_managed(shell, debug, context_name):
         Bastion(used_name).create_managed_loop(shell=shell)
 
         sleep(1)
+
+
+@cli.command("ssh", help="Will SSH into pod with containing string name")
+@click.argument("pod_name")
+def ssh_pod(pod_name):
+    found = set()
+    try:
+        pod_lines = subprocess.check_output(
+            f"kubectl get pods".split(" ")).decode().split(
+            "\n")
+    except FileNotFoundError:
+        rich.print("[red]kubectl not found on this machine[/red]")
+        return
+
+    for pod_line in pod_lines:
+        if pod_name in pod_line:
+            found.add(pod_line)
+
+    if len(found) > 1:
+        pod_name_precise = inquirer.select("Found more pods, choose one:",
+                                           list(found)).execute().split(" ")[0]
+    elif len(found) == 1:
+        pod_name_precise = found.pop()
+    else:
+        rich.print(f"[red]No pods with name {pod_name} found[/red]")
+        return
+
+    rich.print(f"[green]Connecting to {pod_name_precise}[/green]")
+    subprocess.call(f"kubectl exec --stdin --tty {pod_name_precise} -- /bin/bash"
+                    .split(" "))
 
 
 def main():

@@ -1,3 +1,4 @@
+import logging
 import signal
 from threading import Thread
 from time import sleep
@@ -68,10 +69,15 @@ class BastionScheduler:
             conf = bastion.load_self_creds()
             active = bastion.connected and bastion.active_tunnel.poll() is None
             name = "default" if bastion.context_name is None else bastion.context_name
-            rich.print(
-                f"Bastion: [green]{name}[/green] "
-                f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red] "
-                f"Active: {active}")
+            highlight = "green" if active else "yellow"
+            try:
+                rich.print(
+                    f"Bastion: [green]{name}[/green]",
+                    f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red]",
+                    f"Active: [{highlight}]{active}[/{highlight}]",
+                    f"Status: {bastion.current_status}")
+            except:
+                pass
         rich.print(2 * "\n")
         rich.print(50 * "-")
 
@@ -85,8 +91,12 @@ class BastionScheduler:
     @classmethod
     def _run_indefinitely(cls, func):
         while True:
-            func()
-            sleep(1)
+            try:
+                func()
+            except Exception as ex:
+                logging.warning(f"Exception occurred while running indefinite loop {ex}")
+            finally:
+                sleep(1)
 
     @classmethod
     @load_stack_decorator
@@ -107,8 +117,8 @@ class BastionScheduler:
 
         Thread(name="Display", target=cls.__display_loop, daemon=True).start()
 
-        for thread in thread_list:
-            thread.join()
+        while True:
+            sleep(1)
 
     @classmethod
     @load_stack_decorator

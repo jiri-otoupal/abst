@@ -25,6 +25,15 @@ class Bastion:
         self.connected: bool = False
         self.active_tunnel: subprocess.Popen = Optional[None]
         self.response: Optional[dict] = None
+        self._current_status = None
+
+    @property
+    def current_status(self):
+        return self._current_status
+
+    @current_status.setter
+    def current_status(self, value):
+        self._current_status = value
 
     def get_bastion_state(self) -> dict:
         bastion_id = self.response["data"]["id"]
@@ -68,6 +77,7 @@ class Bastion:
         print(f"Loading Credentials {self.get_print_name()}")
         creds = self.load_self_creds()
 
+        self.current_status = "creating bastion session"
         try:
             res = self.create_bastion_ssh_session_managed(creds)
         except subprocess.CalledProcessError as ex:
@@ -82,8 +92,10 @@ class Bastion:
             rich.print(
                 f"Failed to Create Bastion {self.get_print_name()} with response"
                 f" '{response}'")
+            self.current_status = "creating bastion session failed"
             return
         else:
+            self.current_status = "creating bastion session succeeded"
             rich.print(
                 f"Created Session with id '{bid}' on Bastion {self.get_print_name()} "
                 f"'{response['data']['bastion-name']}'")
@@ -94,10 +106,12 @@ class Bastion:
         ip = target_details["target-resource-private-ip-address"]
         port = target_details["target-resource-port"]
 
+        self.current_status = "waiting for session init"
         self.wait_for_prepared()
 
-        sleep(1)  # Precaution
+        sleep(1)  # Precaution init delay
 
+        self.current_status = "digging tunnel"
         ssh_tunnel_args = self.run_ssh_tunnel_managed_session(bid, host,
                                                               creds["private-key-path"],
                                                               creds[
@@ -112,9 +126,11 @@ class Bastion:
 
             if deleted:
                 print(f"Bastion {self.get_print_name()} Session got deleted")
+                self.current_status = "bastion session deleted"
                 return
 
         print(f"SSH Tunnel for {self.get_print_name()} Terminated")
+        self.current_status = "ssh tunnel terminated"
         self.kill()
 
     @mark_on_exit
@@ -122,6 +138,7 @@ class Bastion:
         Bastion.shell = shell
         print(f"Loading Credentials for {self.get_print_name()}")
         creds = self.load_self_creds()
+        self.current_status = "creating bastion session"
 
         try:
             host, ip, port, res = self.create_bastion_forward_port_session(creds)
@@ -134,15 +151,21 @@ class Bastion:
         bid, response = self.load_response(res)
 
         if bid is None:
+            self.current_status = "creating bastion session failed"
             rich.print(f"Failed to Create Bastion {self.get_print_name()}"
                        f" with response '{response}'")
             return
         else:
+            self.current_status = "creating bastion session succeeded"
             rich.print(f"Created Session for {self.get_print_name()} with id '{bid}'")
+
+        self.current_status = "waiting for session init"
 
         self.wait_for_prepared()
 
         sleep(1)  # Precaution
+
+        self.current_status = "digging tunnel"
 
         ssh_tunnel_arg_str = self.run_ssh_tunnel_port_forward(bid, host, ip, port,
                                                               shell,
@@ -154,9 +177,11 @@ class Bastion:
 
             if deleted:
                 print(f"Bastion Session {self.get_print_name()} got deleted")
+                self.current_status = "bastion session deleted"
                 return
 
         print(f"SSH Tunnel for {self.get_print_name()} Terminated")
+        self.current_status = "ssh tunnel terminated"
         self.kill()
 
     def run_ssh_tunnel_managed_session(self, bid, host, private_key_path, username,
