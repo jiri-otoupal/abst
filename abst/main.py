@@ -334,6 +334,7 @@ def fullauto_managed(shell, debug, context_name):
 def ssh_pod(pod_name):
     found = set()
     try:
+        rich.print("Fetching pods")
         pod_lines = subprocess.check_output(
             f"kubectl get pods".split(" ")).decode().split(
             "\n")

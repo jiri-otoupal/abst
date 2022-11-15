@@ -464,6 +464,7 @@ class Bastion:
                     f"({self.get_print_name()}) SSH Tunnel Running from "
                     f"{datetime.datetime.now()}")
                 self.connected = True
+                self.current_status = "connected"
 
             if not line and not line_err:
                 sleep(0.1)
