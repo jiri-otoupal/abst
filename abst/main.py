@@ -90,17 +90,26 @@ def display(debug):
                   " use default for default context specified"
                   " in creds.json")
 @click.option("--debug", is_flag=True, default=False)
-@click.argument("context-name", default="default")
+@click.argument("context-name", default="")
 def use(debug, context_name):
     setup_debug(debug)
 
+    used_context = context_name
+    if context_name == "":
+        contexts = BastionScheduler.get_contexts()
+        if len(contexts) == 0:
+            rich.print("No Contexts available, selected default")
+            used_context = "default"
+        else:
+            used_context = inquirer.select("Select context to use:", contexts).execute()
+
     Bastion.create_default_location()
     conf = Bastion.load_config()
-    conf["used_context"] = None if context_name == "default" else context_name
+    conf["used_context"] = None if used_context == "default" else used_context
 
     rich.print("[green]Successfully Switched[/green]")
     rich.print(
-        f"[white]Currently used context is[/white] [green]{context_name}[/green] "
+        f"[white]Currently used context is[/white] [green]{used_context}[/green] "
         f"[gray](This does not change context in .kube)[/gray]")
     Bastion.write_creds_json(conf, default_conf_path)
 

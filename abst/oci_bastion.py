@@ -59,8 +59,6 @@ class Bastion:
             print(f"Removed Session {self.get_print_name()}")
         except Exception:
             print(f"Looks like Bastion is already deleted {self.get_print_name()}")
-        finally:
-            exit(0)
 
     @classmethod
     def delete_bastion_session(cls, sess_id):

@@ -30,17 +30,18 @@ class BastionScheduler:
                                      default_stack_location)
 
     @classmethod
+    def get_contexts(cls):
+        return [name.name.replace(".json", "") for name in
+                default_contexts_location.iterdir()]
+
+    @classmethod
     @load_stack_decorator
     def add_bastion(cls, context_name: str):
-
         if context_name in cls.__dry_stack:
             print("Already in stack")
             return
 
-        if context_name != "default" and context_name not in [
-            name.name.replace(".json", "") for
-            name in
-            default_contexts_location.iterdir()]:
+        if context_name != "default" and context_name not in cls.get_contexts():
             print(f"No context with name {context_name}")
             return
 
@@ -69,10 +70,10 @@ class BastionScheduler:
             conf = bastion.load_self_creds()
             active = bastion.connected and bastion.active_tunnel.poll() is None
             name = "default" if bastion.context_name is None else bastion.context_name
-            highlight = "green" if active else "yellow"
+            highlight = "green3" if active else "yellow"
             try:
                 rich.print(
-                    f"Bastion: [green]{name}[/green]",
+                    f"Bastion: [green4]{name}[/green4]",
                     f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red]",
                     f"Active: [{highlight}]{active}[/{highlight}]",
                     f"Status: {bastion.current_status}")
@@ -117,8 +118,8 @@ class BastionScheduler:
 
         Thread(name="Display", target=cls.__display_loop, daemon=True).start()
 
-        while True:
-            sleep(1)
+        for t in thread_list:
+            t.join()
 
     @classmethod
     @load_stack_decorator
