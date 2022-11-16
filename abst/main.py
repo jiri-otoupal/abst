@@ -357,7 +357,7 @@ def ssh_pod(pod_name):
 
     if len(found) > 1:
         pod_name_precise = inquirer.select("Found more pods, choose one:",
-                                           list(found)).execute().split(" ")[0]
+                                           list(found)).execute().split(" ")[1]
     elif len(found) == 1:
         pod_name_precise = found.pop()
     else:
