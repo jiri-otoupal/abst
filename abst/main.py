@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import signal
 import subprocess
 from time import sleep
@@ -341,7 +342,7 @@ def fullauto_managed(shell, debug, context_name):
 @cli.command("ssh", help="Will SSH into pod with containing string name")
 @click.argument("pod_name")
 def ssh_pod(pod_name):
-    found = set()
+    found = list()
     try:
         rich.print("Fetching pods")
         pod_lines = subprocess.check_output(
@@ -353,13 +354,14 @@ def ssh_pod(pod_name):
 
     for pod_line in pod_lines:
         if pod_name in pod_line:
-            found.add(pod_line)
+            found.append(pod_line)
 
     if len(found) > 1:
         pod_name_precise = inquirer.select("Found more pods, choose one:",
                                            list(found)).execute().split(" ")[1]
     elif len(found) == 1:
-        pod_name_precise = found.pop().split(" ")[1]
+        tmp = found.pop()
+        pod_name_precise = re.sub(' +', ' ', tmp).split(" ")[1]
     else:
         rich.print(f"[red]No pods with name {pod_name} found[/red]")
         return
