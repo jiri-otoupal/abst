@@ -65,9 +65,13 @@ class Bastion:
         print("Removing Bastion session")
         bastion_kill_arg_str = f"oci bastion session delete --session-id {sess_id}" \
                                f" --force"
-        out = subprocess.check_output(bastion_kill_arg_str.split(), shell=False).decode(
-            "utf-8")
-        return out
+        try:
+            out = subprocess.check_output(bastion_kill_arg_str.split(),
+                                          shell=False).decode(
+                "utf-8")
+            return out
+        except Exception as ex:
+            logging.info(f"Exception while trying to delete session {ex}")
 
     @mark_on_exit
     def create_managed_loop(self, shell: bool = False):
