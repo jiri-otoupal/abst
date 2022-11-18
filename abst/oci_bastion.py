@@ -10,7 +10,6 @@ from typing import Optional
 
 import rich
 
-from abst.bastion_scheduler import BastionScheduler
 from abst.config import default_creds_path, \
     default_contexts_location, default_conf_path, \
     default_conf_contents
@@ -169,6 +168,7 @@ class Bastion:
         ssh_tunnel_arg_str = self.run_ssh_tunnel_port_forward(bid, host, ip, port,
                                                               shell,
                                                               creds.get("local-port", 22))
+        from abst.bastion_scheduler import BastionScheduler
 
         while status := (sdata := self.get_bastion_state()["data"])[
                             "lifecycle-state"] == "ACTIVE" and \
@@ -334,6 +334,7 @@ class Bastion:
             else:
                 break
 
+        from abst.bastion_scheduler import BastionScheduler
         # Proceed with check for disconnect or termination, after process termination
         if not self.connected and status and not BastionScheduler.stopped:
             rich.print(
