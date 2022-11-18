@@ -15,6 +15,7 @@ from abst.wrappers import load_stack_decorator
 class BastionScheduler:
     __dry_stack = set()
     __live_stack = set()
+    stopped = False
 
     @classmethod
     def load_stack(cls):
@@ -92,6 +93,8 @@ class BastionScheduler:
     @classmethod
     def _run_indefinitely(cls, func):
         while True:
+            if cls.stopped:
+                return
             try:
                 func()
             except Exception as ex:
@@ -108,6 +111,8 @@ class BastionScheduler:
         thread_list = []
 
         for context_name in cls.__dry_stack:
+            if cls.stopped:
+                return
             bastion = Bastion(None if context_name == "default" else context_name)
             cls.__live_stack.add(bastion)
             t = Thread(name=context_name, target=cls._run_indefinitely,
@@ -135,6 +140,7 @@ class BastionScheduler:
     @classmethod
     def kill_all(cls, a=None, b=None, c=None):
         # This should be only executed in running state
+        cls.stopped = True
         for i, sess in enumerate(Bastion.session_list):
             try:
                 print(f"Killing {sess}")
