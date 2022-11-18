@@ -327,14 +327,15 @@ class Bastion:
         deleted :param shell: If you use shell environment (can have different impacts on
         MAC and LINUX) :param sdata: :param ssh_tunnel_arg_str: :param status: :return:
         """
+        from abst.bastion_scheduler import BastionScheduler
+
         for i in range(1, 3):
-            if not status:
+            if not status and not BastionScheduler.stopped:
                 rich.print(f"({self.get_print_name()}) Trying another time {i}/3")
                 status = self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell, already_split)
             else:
                 break
 
-        from abst.bastion_scheduler import BastionScheduler
         # Proceed with check for disconnect or termination, after process termination
         if not self.connected and status and not BastionScheduler.stopped:
             rich.print(
