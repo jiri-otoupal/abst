@@ -144,6 +144,7 @@ class BastionScheduler:
         for i, sess in enumerate(Bastion.session_list):
             try:
                 print(f"Killing {sess}")
+                Bastion.current_status = "deleting"
                 out = Bastion.delete_bastion_session(sess)
                 rich.print(out)
             except Exception:
