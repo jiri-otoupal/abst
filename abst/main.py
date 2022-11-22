@@ -339,6 +339,8 @@ def fullauto_managed(shell, debug, context_name):
         sleep(1)
 
 
+# TODO Generate not work
+
 @cli.command("ssh", help="Will SSH into pod with containing string name")
 @click.argument("pod_name")
 def ssh_pod(pod_name):
@@ -357,19 +359,22 @@ def ssh_pod(pod_name):
             found.append(pod_line)
 
     if len(found) > 1:
+        data = re.sub(' +', ' ', inquirer.select("Found more pods, choose one:",
+                                                 list(found)).execute()).split(" ")
         pod_name_precise = \
-            re.sub(' +', ' ', inquirer.select("Found more pods, choose one:",
-                                              list(found)).execute()).split(" ")[1]
+            data[1]
     elif len(found) == 1:
         tmp = found.pop()
-        pod_name_precise = re.sub(' +', ' ', tmp).split(" ")[1]
+        data = re.sub(' +', ' ', tmp).split(" ")
+        pod_name_precise = data[1]
     else:
         rich.print(f"[red]No pods with name {pod_name} found[/red]")
         return
 
     rich.print(f"[green]Connecting to {pod_name_precise}[/green]")
-    subprocess.call(f"kubectl exec --stdin --tty {pod_name_precise} -- /bin/bash"
-                    .split(" "))
+    subprocess.call(
+        f"kubectl exec -n {data[0]} --stdin --tty {pod_name_precise} -- /bin/bash"
+        .split(" "))
 
 
 def main():
