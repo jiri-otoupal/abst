@@ -10,6 +10,7 @@ import rich
 from InquirerPy import inquirer
 from rich.logging import RichHandler
 
+from abst.__version__ import __version_name__, __version__
 from abst.bastion_scheduler import BastionScheduler
 from abst.cfg_func import __upgrade
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
@@ -18,6 +19,7 @@ from abst.tools import get_context_path, display_scheduled
 
 
 @click.group()
+@click.version_option(f"{__version__} {__version_name__}")
 def cli():
     pass
 
