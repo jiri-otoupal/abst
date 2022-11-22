@@ -276,7 +276,7 @@ class Bastion:
             return default_contexts_location / (context_name + ".json")
 
     def get_creds_path(self) -> Path:
-        if self.context_name is None:
+        if self is None or self.context_name is None:
             return default_creds_path
         else:
             return default_contexts_location / (self.context_name + ".json")
@@ -402,11 +402,8 @@ class Bastion:
         return str(Path(creds["ssh-pub-path"]).expanduser().resolve())
 
     @classmethod
-    def generate_sample_dict(cls, generate_with_delete_this=True):
+    def generate_sample_dict(cls):
         td = dict()
-        if generate_with_delete_this:
-            td["delete_this"] = "Delete This Line after you Fill" \
-                                " this file with your credentials"
         td["host"] = "host.bastion.us-phoenix-1.oci.oraclecloud.com"
         td["bastion-id"] = "ocid1.bastion......"
         td["default-name"] = "My super cool name"

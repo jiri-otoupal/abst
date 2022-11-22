@@ -140,10 +140,10 @@ def fill(debug, context_name):
 
     path = get_context_path(context_name)
 
-    if not default_creds_path.exists():
+    if not path.exists():
         rich.print("Generating sample Creds file")
         Bastion.create_default_location()
-        td = Bastion.generate_sample_dict(False)
+        td = Bastion.generate_sample_dict()
         Bastion.write_creds_json(td, path)
 
     if not default_contexts_location.exists():
