@@ -198,7 +198,7 @@ class Bastion:
                            f"ProxyCommand='ssh -i {private_key_path} -W %h:%p -p {port} "
                            f"{bid}@{host} -A'",
                            "-p", f"{port}", f"{username}@{ip}", "-vvv", "-A"]
-        self.__run_ssh_tunnel(ssh_tunnel_args, shell, already_split=True)
+        self.__run_ssh_tunnel_call(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args
 
     def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port):
@@ -276,7 +276,7 @@ class Bastion:
             return default_contexts_location / (context_name + ".json")
 
     def get_creds_path(self) -> Path:
-        if self is None or self.context_name is None:
+        if self.context_name is None:
             return default_creds_path
         else:
             return default_contexts_location / (self.context_name + ".json")
@@ -421,14 +421,7 @@ class Bastion:
                                  "// This is required only for Managed SSH session"
         return td
 
-    def __run_ssh_tunnel(self, ssh_tunnel_arg_str, shell, already_split=False):
-        """
-
-        :param ssh_tunnel_arg_str: String for ssh tunnel creation
-        :param shell: If you use shell environment (can have different impacts on MAC and
-         LINUX)
-        :return:
-        """
+    def process_args(self, already_split, shell, ssh_tunnel_arg_str):
         if not already_split and not shell:
             args_split = ssh_tunnel_arg_str.split()
         elif not already_split and shell:
@@ -438,10 +431,26 @@ class Bastion:
                 args_split = " ".join(ssh_tunnel_arg_str)
             else:
                 args_split = ssh_tunnel_arg_str
-
         logging.debug(
             f'({self.get_print_name()}) SSH Tunnel command: '
             f'{" ".join(args_split) if not shell else args_split}')
+        return args_split
+
+    def __run_ssh_tunnel_call(self, ssh_tunnel_arg_str, shell, already_split=False):
+        args_split = self.process_args(already_split, shell, ssh_tunnel_arg_str)
+
+        subprocess.call(args_split, stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT, shell=shell)
+
+    def __run_ssh_tunnel(self, ssh_tunnel_arg_str, shell, already_split=False):
+        """
+
+        :param ssh_tunnel_arg_str: String for ssh tunnel creation
+        :param shell: If you use shell environment (can have different impacts on MAC and
+         LINUX)
+        :return:
+        """
+        args_split = self.process_args(already_split, shell, ssh_tunnel_arg_str)
 
         p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, shell=shell)
