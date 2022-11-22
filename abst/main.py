@@ -104,6 +104,7 @@ def use(debug, context_name):
             rich.print("No Contexts available, selected default")
             used_context = "default"
         else:
+            contexts.insert(0, "default")
             used_context = inquirer.select("Select context to use:", contexts).execute()
 
     Bastion.create_default_location()

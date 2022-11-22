@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import os
 import signal
 import subprocess
 from json import JSONDecodeError
@@ -194,10 +195,7 @@ class Bastion:
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
 
-        ssh_tunnel_args = [f"ssh", "-i", f"{private_key_path}", "-o",
-                           f"ProxyCommand='ssh -i {private_key_path} -W %h:%p -p {port} "
-                           f"{bid}@{host} -A'",
-                           "-p", f"{port}", f"{username}@{ip}", "-vvv", "-A"]
+        ssh_tunnel_args = f'ssh -i {private_key_path} -o ProxyCommand="ssh -i {private_key_path} -W %h:%p -p {port} {bid}@{host} -A" -p {port} {username}@{ip} -A'
         self.__run_ssh_tunnel_call(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args
 
@@ -437,10 +435,8 @@ class Bastion:
         return args_split
 
     def __run_ssh_tunnel_call(self, ssh_tunnel_arg_str, shell, already_split=False):
-        args_split = self.process_args(already_split, shell, ssh_tunnel_arg_str)
 
-        subprocess.call(args_split, stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT, shell=shell)
+        os.system(ssh_tunnel_arg_str)
 
     def __run_ssh_tunnel(self, ssh_tunnel_arg_str, shell, already_split=False):
         """
