@@ -374,10 +374,9 @@ def ssh_pod(pod_name):
         rich.print(f"[red]No pods with name {pod_name} found[/red]")
         return
 
-    rich.print(f"[green]Connecting to {pod_name_precise}[/green]")
-    subprocess.call(
-        f"kubectl exec -n {data[0]} --stdin --tty {pod_name_precise} -- /bin/bash"
-        .split(" "))
+    rich.print(f"[green]Connecting to {pod_name_precise} in namespace: {data[0]}[/green]")
+    os.system(
+        f"kubectl exec -n {data[0]} --stdin --tty {pod_name_precise} -- /bin/bash")
 
 
 @cli.group("cp")
