@@ -19,6 +19,7 @@ from abst.wrappers import mark_on_exit
 
 
 class Bastion:
+    stopped = False
     session_list = []
 
     def __init__(self, context_name=None):
@@ -53,6 +54,7 @@ class Bastion:
     def kill(self):
         print(f"Killing Bastion {self.get_print_name()} SSH Tunnel")
         try:
+            Bastion.stopped = True
             self.active_tunnel.send_signal(signal.SIGTERM)
             sess_id = self.response["id"]
             Bastion.session_list.remove(sess_id)
@@ -311,10 +313,11 @@ class Bastion:
 
     @classmethod
     def create_default_location(cls):
-        if not default_conf_path.exists():
-            cls.write_creds_json(default_conf_contents, default_conf_path)
         Path(default_creds_path.parent).mkdir(exist_ok=True)
         Path(default_contexts_location).mkdir(exist_ok=True)
+
+        if not default_conf_path.exists():
+            cls.write_creds_json(default_conf_contents, default_conf_path)
 
     @classmethod
     def write_creds_json(cls, td: dict, path: Path):
@@ -344,13 +347,13 @@ class Bastion:
                 f"Checking for idle termination, Bastion {self.get_print_name()} "
                 f"Active? {status}")
             created_time = datetime.datetime.fromisoformat(
-                sdata["time-created"]).astimezone(
+                sdata["time_created"]).astimezone(
                 datetime.timezone.utc)
             now_time = datetime.datetime.now(datetime.timezone.utc)
             ttl_now = now_time - created_time
             ttl_max = sdata["session-ttl-in-seconds"]
             delta = ttl_max - ttl_now.seconds
-            if delta > 0:
+            if delta > 0 and not BastionScheduler.stopped:
                 print(
                     f"Bastion {self.get_print_name()} "
                     f"Current session {delta} seconds remaining ({ttl_now}) "
@@ -388,6 +391,8 @@ class Bastion:
     @classmethod
     def __create_bastion_ssh_session_managed(cls, bastion_id, resource_id, name,
                                              os_username, ssh_path, ttl, shell):
+        if Bastion.stopped:
+            return
         public_key = get_public_key(ssh_path)
         sess_details = oci.bastion.models.CreateSessionDetails(bastion_id=bastion_id,
                                                                target_resource_details=oci.bastion.models.CreateManagedSshSessionTargetResourceDetails(
