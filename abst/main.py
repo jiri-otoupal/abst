@@ -391,7 +391,9 @@ def helm():
 
 @helm.command("login")
 @click.option("--debug", is_flag=True, default=False)
-def helm_login(debug):
+@click.option("--edit", default=False,
+              help="Edit credentials with index as argument (starts from 1)")
+def helm_login(debug, edit):
     """
     Copy Secret in current cluster from source namespace to target
     @return:
@@ -403,16 +405,22 @@ def helm_login(debug):
         _config = Bastion.load_config()
         if "helm" not in _config.keys():
             _config["helm"] = []
-            rich.print(f"Please Fill in Repository details that"
-                       f" are going to be saved in {default_conf_path}")
-            host = inquirer.text("Host", default="phx.ocir.io").execute()
-            remote = inquirer.text("Remote URL", default="oci://").execute()
-            username = inquirer.text("Username").execute()
-            password = inquirer.secret("Password").execute()
+            host, password, remote, username = helm_login_dialog()
             _config["helm"].append(
                 {"host": host, "remote": remote, "username": username, "password": password})
             Bastion.write_creds_json(_config, default_conf_path)
             rich.print("Added Credentials")
+        elif edit:
+            if "helm" not in _config.keys():
+                _config["helm"] = []
+
+            host, password, remote, username = helm_login_dialog()
+            _config["helm"][edit - 1] = {"host": host, "remote": remote, "username": username,
+                                         "password": password}
+            rich.print_json(data=_config["helm"][edit - 1])
+            if inquirer.confirm(message="Write New Json ?", default=False).execute():
+                Bastion.write_creds_json(_config, default_conf_path)
+                rich.print("Edited Credentials")
 
         choices = [{"name": f'{choice["remote"]} {choice["username"]}', "value": choice} for choice
                    in _config["helm"]]
@@ -427,6 +435,16 @@ def helm_login(debug):
     except Exception as ex:
         rich.print(f"[red]Exception during execution {ex}[/red]")
         return
+
+
+def helm_login_dialog():
+    rich.print(f"Please Fill in Repository details that"
+               f" are going to be saved in {default_conf_path}")
+    host = inquirer.text("Host", default="phx.ocir.io").execute()
+    remote = inquirer.text("Remote URL", default="oci://").execute()
+    username = inquirer.text("Username").execute()
+    password = inquirer.secret("Password").execute()
+    return host, password, remote, username
 
 
 @helm.command("push")
