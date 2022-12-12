@@ -14,6 +14,7 @@ from abst.__version__ import __version_name__, __version__
 from abst.bastion_scheduler import BastionScheduler
 from abst.cfg_func import __upgrade
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
+from abst.dialos import helm_login_dialog
 from abst.oci_bastion import Bastion
 from abst.tools import get_context_path, display_scheduled
 
@@ -437,16 +438,6 @@ def helm_login(debug, edit):
         return
 
 
-def helm_login_dialog():
-    rich.print(f"Please Fill in Repository details that"
-               f" are going to be saved in {default_conf_path}")
-    host = inquirer.text("Host", default="phx.ocir.io").execute()
-    remote = inquirer.text("Remote URL", default="oci://").execute()
-    username = inquirer.text("Username").execute()
-    password = inquirer.secret("Password").execute()
-    return host, password, remote, username
-
-
 @helm.command("push")
 @click.argument("chart")
 @click.option("--debug", is_flag=True, default=False)
@@ -482,14 +473,17 @@ def helm_push(chart, debug):
 @click.argument("secret_name")
 @click.argument("source_namespace")
 @click.argument("target_namespace")
-def cp_secret(secret_name: str, target_namespace: str, source_namespace: str = "default"):
+@click.option("--debug", is_flag=True, default=False)
+def cp_secret(secret_name: str, target_namespace: str, source_namespace: str = "default", debug=False):
     """
     Copy Secret in current cluster from source namespace to target
     @param secret_name: Secret Name
     @param target_namespace: Target Namespace name
     @param source_namespace: Source Namespace name
     @return:
+    :param debug:
     """
+    setup_debug(debug)
     try:
         rich.print("Trying Copy secret")
         os.system(
