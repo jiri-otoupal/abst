@@ -11,6 +11,7 @@ from typing import Optional
 
 import oci
 import rich
+from oci.exceptions import ServiceError
 
 from abst.config import default_creds_path, \
     default_contexts_location, default_conf_path, \
@@ -59,8 +60,7 @@ class Bastion:
             sess_id = self.response["id"]
             Bastion.session_list.remove(sess_id)
             print(f"Cleaning {self.get_print_name()}")
-            out = self.delete_bastion_session(sess_id)
-            rich.print(out)
+            self.delete_bastion_session(sess_id)
             print(f"Removed Session {self.get_print_name()}")
         except Exception:
             print(f"Looks like Bastion is already deleted {self.get_print_name()}")
@@ -71,8 +71,15 @@ class Bastion:
 
         try:
             config = oci.config.from_file()
-            req = oci.bastion.BastionClient(config).delete_bastion(sess_id)
-            return Bastion.parse_response(req)
+            while True:
+                try:
+                    if oci.bastion.BastionClient(config).get_session(
+                            sess_id).data.lifecycle_state == "DELETED":
+                        return
+                    oci.bastion.BastionClient(config).delete_session(sess_id)
+                    return
+                except ServiceError:
+                    sleep(1)
         except Exception as ex:
             logging.info(f"Exception while trying to delete session {ex}")
 
@@ -140,6 +147,11 @@ class Bastion:
 
     @mark_on_exit
     def create_forward_loop(self, shell: bool = False):
+        from bastion_scheduler import BastionScheduler
+
+        if BastionScheduler.stopped:
+            return
+
         Bastion.shell = shell
         print(f"Loading Credentials for {self.get_print_name()}")
         creds = self.load_self_creds()

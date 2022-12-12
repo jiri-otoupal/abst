@@ -85,6 +85,8 @@ class BastionScheduler:
 
     @classmethod
     def __display_loop(cls):
+        signal.signal(signal.SIGINT, BastionScheduler.kill_all)
+        signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
         while True:
             clear()
             cls.__display()
@@ -121,10 +123,7 @@ class BastionScheduler:
             t.start()
             rich.print(f"Started {context_name}")
 
-        Thread(name="Display", target=cls.__display_loop, daemon=True).start()
-
-        for t in thread_list:
-            t.join()
+        cls.__display_loop()
 
     @classmethod
     @load_stack_decorator
@@ -141,16 +140,16 @@ class BastionScheduler:
     def kill_all(cls, a=None, b=None, c=None):
         # This should be only executed in running state
         cls.stopped = True
-        for i, sess in enumerate(Bastion.session_list):
+        blist_copy = list(Bastion.session_list)
+        for i, sess in enumerate(blist_copy):
             try:
                 print(f"Killing {sess}")
                 Bastion.current_status = "deleting"
-                out = Bastion.delete_bastion_session(sess)
-                rich.print(out)
+                Bastion.delete_bastion_session(sess)
             except Exception:
                 print(f"Looks like Bastion is already deleted {sess}")
             finally:
-                print(f"Deleting {i + 1}/{len(Bastion.session_list)}")
+                print(f"Deleting {i + 1}/{len(blist_copy)}")
         exit(0)
 
     @classmethod

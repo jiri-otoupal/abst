@@ -474,7 +474,8 @@ def helm_push(chart, debug):
 @click.argument("source_namespace")
 @click.argument("target_namespace")
 @click.option("--debug", is_flag=True, default=False)
-def cp_secret(secret_name: str, target_namespace: str, source_namespace: str = "default", debug=False):
+def cp_secret(secret_name: str, target_namespace: str, source_namespace: str = "default",
+              debug=False):
     """
     Copy Secret in current cluster from source namespace to target
     @param secret_name: Secret Name
@@ -505,7 +506,9 @@ def main():
     cli()
 
 
+signal.signal(signal.SIGINT, BastionScheduler.kill_all)
+signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
+signal.signal(signal.SIGABRT, BastionScheduler.kill_all)
+
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, BastionScheduler.kill_all)
-    signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
     main()
