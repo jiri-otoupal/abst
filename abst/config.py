@@ -10,3 +10,8 @@ default_config_keys: tuple = (
 default_contexts_location: Path = (Path().home().resolve() / ".abst" / "contexts")
 default_stack_contents: dict = {"stack": []}
 default_conf_contents: dict = {"used_context": None}
+
+
+def get_public_key(ssh_path):
+    with open(ssh_path, "r") as f:
+        return f.read()

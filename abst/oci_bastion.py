@@ -9,11 +9,12 @@ from pathlib import Path
 from time import sleep
 from typing import Optional
 
+import oci
 import rich
 
 from abst.config import default_creds_path, \
     default_contexts_location, default_conf_path, \
-    default_conf_contents
+    default_conf_contents, get_public_key
 from abst.wrappers import mark_on_exit
 
 
@@ -37,13 +38,14 @@ class Bastion:
         self._current_status = value
 
     def get_bastion_state(self) -> dict:
-        bastion_id = self.response["data"]["id"]
-        get_state_arg_str = f"oci bastion session get --session-id {bastion_id}"
-        res = subprocess.check_output(get_state_arg_str.split())
+        session_id = self.response["id"]
+        config = oci.config.from_file()
+        req = oci.bastion.BastionClient(config).get_session(session_id)
+
         try:
-            return json.loads(res)
+            return Bastion.parse_response(req.data)
         except JSONDecodeError:
-            rich.print(f"Failed to decode json: '{res}'")
+            rich.print(f"Failed to decode json: '{req.status} {req.data}'")
 
     def get_print_name(self):
         return self.context_name if self.context_name else "default"
@@ -52,7 +54,7 @@ class Bastion:
         print(f"Killing Bastion {self.get_print_name()} SSH Tunnel")
         try:
             self.active_tunnel.send_signal(signal.SIGTERM)
-            sess_id = self.response["data"]["id"]
+            sess_id = self.response["id"]
             Bastion.session_list.remove(sess_id)
             print(f"Cleaning {self.get_print_name()}")
             out = self.delete_bastion_session(sess_id)
@@ -66,11 +68,11 @@ class Bastion:
         print("Removing Bastion session")
         bastion_kill_arg_str = f"oci bastion session delete --session-id {sess_id}" \
                                f" --force"
+
         try:
-            out = subprocess.check_output(bastion_kill_arg_str.split(),
-                                          shell=False).decode(
-                "utf-8")
-            return out
+            config = oci.config.from_file()
+            req = oci.bastion.BastionClient(config).delete_bastion(sess_id)
+            return Bastion.parse_response(req)
         except Exception as ex:
             logging.info(f"Exception while trying to delete session {ex}")
 
@@ -105,7 +107,7 @@ class Bastion:
 
         rich.print("Auto resolving target details from response")
         host = creds["host"]
-        target_details = response["data"]["target-resource-details"]
+        target_details = response["target-resource-details"]
         ip = target_details["target-resource-private-ip-address"]
         port = target_details["target-resource-port"]
 
@@ -122,8 +124,8 @@ class Bastion:
                                                               ip, port,
                                                               shell)
 
-        while status := (sdata := self.get_bastion_state()["data"])[
-                            "lifecycle-state"] == "ACTIVE":
+        while status := (sdata := self.get_bastion_state())[
+                            "lifecycle_state"] == "ACTIVE":
             deleted = self.connect_till_deleted(sdata, ssh_tunnel_args, status, shell,
                                                 True)
 
@@ -175,8 +177,8 @@ class Bastion:
                                                               creds.get("local-port", 22))
         from abst.bastion_scheduler import BastionScheduler
 
-        while status := (sdata := self.get_bastion_state()["data"])[
-                            "lifecycle-state"] == "ACTIVE" and \
+        while status := (sdata := self.get_bastion_state())[
+                            "lifecycle_state"] == "ACTIVE" and \
                         not BastionScheduler.stopped:
             deleted = self.connect_till_deleted(sdata, ssh_tunnel_arg_str, status, shell)
 
@@ -208,12 +210,12 @@ class Bastion:
 
     def wait_for_prepared(self):
         print(f"Waiting for Bastion {self.get_print_name()} to initialize")
-        while self.get_bastion_state()["data"]["lifecycle-state"] != "ACTIVE":
+        while self.get_bastion_state()["lifecycle_state"] != "ACTIVE":
             sleep(1)
 
     @classmethod
     def parse_response(cls, res):
-        return json.loads(res)
+        return json.loads(str(res))
 
     def load_response(self, res):
         response = None
@@ -222,7 +224,7 @@ class Bastion:
             logging.debug(f"Server Response: {response}")
         except JSONDecodeError:
             rich.print(f"Failed to decode json: {res}")
-        bid = response.get("data", None).get("id", None)
+        bid = response.get("id", None)
 
         return bid, response
 
@@ -233,12 +235,12 @@ class Bastion:
                                                          creds["target-ip"],
                                                          f'{creds["default-name"]}-ctx-'
                                                          f'{self.get_print_name()}',
-                                                         creds["target-port"],
+                                                         int(creds["target-port"]),
                                                          ssh_key_path,
-                                                         creds["ttl"], False)
+                                                         int(creds["ttl"]), False)
         try:
             trs = Bastion.parse_response(res)
-            Bastion.session_list.append(trs["data"]["id"])
+            Bastion.session_list.append(trs["id"])
             logging.debug(f"Added session id of {self.context_name}")
         except:
             pass
@@ -253,11 +255,11 @@ class Bastion:
                                                             f'{self.get_print_name()}',
                                                             creds["resource-os-username"],
                                                             ssh_key_path,
-                                                            creds["ttl"], False
+                                                            int(creds["ttl"]), False
                                                             )
             try:
                 trs = Bastion.parse_response(res)
-                Bastion.session_list.append(trs["data"]["id"])
+                Bastion.session_list.append(trs["id"])
                 logging.debug(f"Added session id of {self.context_name}")
             except:
                 pass
@@ -364,36 +366,47 @@ class Bastion:
                 return True
 
     @classmethod
-    def __create_bastion_session_port_forward(cls, bastion_id, ip, name, port, ssh_path,
-                                              ttl, shell):
-        bastion_arg_str = f"oci bastion session create-port-forwarding " \
-                          f"--bastion-id {bastion_id} " \
-                          f"--display-name {name} " \
-                          f"--ssh-public-key-file {ssh_path} " \
-                          f"--key-type PUB " \
-                          f"--target-private-ip {ip} " \
-                          f"--target-port {port} " \
-                          f"--session-ttl {ttl}"
+    def __create_bastion_session_port_forward(cls, bastion_id, ip, name, port: int, ssh_path,
+                                              ttl: int, shell):
+        public_key = get_public_key(ssh_path)
+        sess_details = oci.bastion.models.CreateSessionDetails(bastion_id=bastion_id,
+                                                               target_resource_details=oci.bastion.models.CreatePortForwardingSessionTargetResourceDetails(
+                                                                   session_type="PORT_FORWARDING",
+                                                                   target_resource_private_ip_address=ip,
+                                                                   target_resource_port=port),
+                                                               key_details=oci.bastion.models.PublicKeyDetails(
+                                                                   public_key_content=public_key),
+                                                               display_name=name,
+                                                               key_type="PUB",
+                                                               session_ttl_in_seconds=ttl)
+        config = oci.config.from_file()
+        req = oci.bastion.BastionClient(config).create_session(sess_details)
+
         print("Creating Port Forward Session")
-        res = subprocess.check_output(bastion_arg_str.split(), shell=shell)
-        return res
+
+        logging.debug(f"{req.data} Status: {req.status}")
+        return req.data
 
     @classmethod
     def __create_bastion_ssh_session_managed(cls, bastion_id, resource_id, name,
                                              os_username, ssh_path, ttl, shell):
-        bastion_arg_str = f"oci bastion session create-managed-ssh " \
-                          f"--bastion-id {bastion_id} " \
-                          f"--display-name {name} " \
-                          f"--ssh-public-key-file {ssh_path} " \
-                          f"--key-type PUB " \
-                          f"--target-resource-id {resource_id} " \
-                          f"--target-os-username {os_username} " \
-                          f"--session-ttl {ttl}"
+        public_key = get_public_key(ssh_path)
+        sess_details = oci.bastion.models.CreateSessionDetails(bastion_id=bastion_id,
+                                                               target_resource_details=oci.bastion.models.CreateManagedSshSessionTargetResourceDetails(
+                                                                   session_type="MANAGED_SSH",
+                                                                   target_resource_id=resource_id,
+                                                                   target_os_username=os_username),
+                                                               key_details=oci.bastion.models.PublicKeyDetails(
+                                                                   public_key_content=public_key),
+                                                               display_name=name,
+                                                               key_type="PUB",
+                                                               session_ttl_in_seconds=ttl)
+        config = oci.config.from_file()
+        req = oci.bastion.BastionClient(config).create_session(sess_details)
 
         print("Creating Managed SSH Session")
-        res = subprocess.check_output(bastion_arg_str.split(), shell=shell)
-        logging.debug(res.decode())
-        return res
+        logging.debug(f"{req.data} Status: {req.status}")
+        return req.data
 
     @classmethod
     def get_ssh_pub_key_path(cls, creds):
