@@ -351,7 +351,7 @@ class Bastion:
                 datetime.timezone.utc)
             now_time = datetime.datetime.now(datetime.timezone.utc)
             ttl_now = now_time - created_time
-            ttl_max = sdata["session-ttl-in-seconds"]
+            ttl_max = sdata["session_ttl_in_seconds"]
             delta = ttl_max - ttl_now.seconds
             if delta > 0 and not BastionScheduler.stopped:
                 print(
