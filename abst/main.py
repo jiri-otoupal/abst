@@ -342,11 +342,11 @@ def fullauto_managed(shell, debug, context_name):
         sleep(1)
 
 
-# TODO Generate not work
-
 @cli.command("ssh", help="Will SSH into pod with containing string name")
 @click.argument("pod_name")
-def ssh_pod(pod_name):
+@click.option("--debug", is_flag=True, default=False)
+def ssh_pod(pod_name, debug):
+    setup_debug(debug)
     found = list()
     try:
         rich.print("Fetching pods")
@@ -384,7 +384,83 @@ def cp():
     pass
 
 
-@cp.command("secret")
+@cli.group("helm")
+def helm():
+    pass
+
+
+@helm.command("login")
+@click.option("--debug", is_flag=True, default=False)
+def helm_login(debug):
+    """
+    Copy Secret in current cluster from source namespace to target
+    @return:
+    :param debug:
+    """
+    setup_debug(debug)
+    from subprocess import PIPE
+    try:
+        _config = Bastion.load_config()
+        if "helm" not in _config.keys():
+            _config["helm"] = []
+            rich.print(f"Please Fill in Repository details that"
+                       f" are going to be saved in {default_conf_path}")
+            host = inquirer.text("Host", default="phx.ocir.io").execute()
+            remote = inquirer.text("Remote URL", default="oci://").execute()
+            username = inquirer.text("Username").execute()
+            password = inquirer.secret("Password").execute()
+            _config["helm"].append(
+                {"host": host, "remote": remote, "username": username, "password": password})
+            Bastion.write_creds_json(_config, default_conf_path)
+            rich.print("Added Credentials")
+
+        choices = [{"name": f'{choice["remote"]} {choice["username"]}', "value": choice} for choice
+                   in _config["helm"]]
+
+        selected = inquirer.select("Select login", choices).execute()
+        rich.print("Trying to login")
+        p = subprocess.Popen(
+            f'helm registry login {selected["host"]} -u {selected["username"]} --password-stdin'.split(
+                " "), stdout=PIPE, stdin=PIPE, stderr=PIPE)
+        rich.print(p.communicate(input=selected["password"].encode())[0].decode())
+
+    except Exception as ex:
+        rich.print(f"[red]Exception during execution {ex}[/red]")
+        return
+
+
+@helm.command("push")
+@click.argument("chart")
+@click.option("--debug", is_flag=True, default=False)
+def helm_push(chart, debug):
+    """
+    Copy Secret in current cluster from source namespace to target
+    @return:
+    :param debug:
+    :param chart:
+    :param debug:
+    """
+    setup_debug(debug)
+    try:
+        _config = Bastion.load_config()
+        if "helm" not in _config.keys():
+            _config["helm"] = []
+            rich.print(f"Please Fill in Repository details that"
+                       f" are going to be saved in {default_conf_path}"
+                       f" with command 'abst helm login'")
+        choices = [{"name": f'{choice["remote"]} {choice["username"]}', "value": choice} for choice
+                   in _config["helm"]]
+
+        selected = inquirer.select("Select remote", choices).execute()
+        rich.print("Trying to push")
+        os.system(f'helm registry push {chart} {selected["remote"]}')
+
+    except Exception as ex:
+        rich.print(f"[red]Exception during execution {ex}[/red]")
+        return
+
+
+@cp.command("login")
 @click.argument("secret_name")
 @click.argument("source_namespace")
 @click.argument("target_namespace")
@@ -399,7 +475,8 @@ def cp_secret(secret_name: str, target_namespace: str, source_namespace: str = "
     try:
         rich.print("Trying Copy secret")
         os.system(
-            f"kubectl get secret {secret_name} --namespace={source_namespace} -o yaml | sed 's/namespace: .*/namespace: {target_namespace}/' | kubectl apply -f -")
+            f"kubectl get secret {secret_name} --namespace={source_namespace} -o yaml | sed "
+            f"'s/namespace: .*/namespace: {target_namespace}/' | kubectl apply -f -")
     except FileNotFoundError:
         rich.print("[red]kubectl not found on this machine[/red]")
         return
