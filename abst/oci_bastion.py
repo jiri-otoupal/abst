@@ -66,8 +66,6 @@ class Bastion:
     @classmethod
     def delete_bastion_session(cls, sess_id):
         print("Removing Bastion session")
-        bastion_kill_arg_str = f"oci bastion session delete --session-id {sess_id}" \
-                               f" --force"
 
         try:
             config = oci.config.from_file()
