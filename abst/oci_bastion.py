@@ -147,8 +147,8 @@ class Bastion:
 
     @mark_on_exit
     def create_forward_loop(self, shell: bool = False):
-        from bastion_scheduler import BastionScheduler
 
+        from abst.bastion_scheduler import BastionScheduler
         if BastionScheduler.stopped:
             return
 
@@ -187,7 +187,6 @@ class Bastion:
         ssh_tunnel_arg_str = self.run_ssh_tunnel_port_forward(bid, host, ip, port,
                                                               shell,
                                                               creds.get("local-port", 22))
-        from abst.bastion_scheduler import BastionScheduler
 
         while status := (sdata := self.get_bastion_state())[
                             "lifecycle_state"] == "ACTIVE" and \

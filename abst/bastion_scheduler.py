@@ -1,4 +1,3 @@
-import logging
 import signal
 from threading import Thread
 from time import sleep
@@ -99,8 +98,6 @@ class BastionScheduler:
                 return
             try:
                 func()
-            except Exception as ex:
-                logging.warning(f"Exception occurred while running indefinite loop {ex}")
             finally:
                 sleep(1)
 
