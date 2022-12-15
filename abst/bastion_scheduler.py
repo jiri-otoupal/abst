@@ -65,30 +65,36 @@ class BastionScheduler:
             rich.print(f"[red]No Bastion by name {name} in stack[/red]")
 
     @classmethod
-    def __display(cls):
+    def __display(cls, console):
+        console.clear()
+        from rich.table import Table
+        table = Table(title="Bastion Sessions", highlight=True)
+
+        table.add_column("Name", justify="left", style="cyan", no_wrap=True)
+        table.add_column("Local Port", style="magenta", no_wrap=True)
+        table.add_column("Active", justify="right", style="green", no_wrap=True)
+        table.add_column("Status", justify="right", style="green", no_wrap=True)
         for bastion in cls.__live_stack:
             conf = bastion.load_self_creds()
             active = bastion.connected and bastion.active_tunnel.poll() is None
             name = "default" if bastion.context_name is None else bastion.context_name
             highlight = "green3" if active else "yellow"
             try:
-                rich.print(
-                    f"Bastion: [green4]{name}[/green4]",
-                    f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red]",
-                    f"Active: [{highlight}]{active}[/{highlight}]",
-                    f"Status: {bastion.current_status}")
+                table.add_row(name, conf.get('local-port', 'Not Specified'), active,
+                              f"[{highlight}]{active}[/{highlight}]")
             except:
                 pass
-        rich.print(2 * "\n")
-        rich.print(50 * "-")
+        console.print(table)
 
     @classmethod
     def __display_loop(cls):
+        from rich.console import Console
+        console = Console()
         signal.signal(signal.SIGINT, BastionScheduler.kill_all)
         signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
         while True:
             clear()
-            cls.__display()
+            cls.__display(console)
             sleep(3)
 
     @classmethod

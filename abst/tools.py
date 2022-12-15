@@ -13,11 +13,19 @@ def get_context_path(context_name):
 
 
 def display_scheduled():
-    rich.print("Current Bastions in Stack:")
+    from rich.table import Table
+    from rich.console import Console
+    console = Console()
+    table = Table(title="Current Bastions in Stack", highlight=True)
+
+    table.add_column("Name", justify="left", style="cyan", no_wrap=True)
+    table.add_column("Local Port", style="magenta", no_wrap=True)
+    table.add_column("Active", justify="right", style="green", no_wrap=True)
+    table.add_column("Status", justify="right", style="green", no_wrap=True)
+
     for context_name in BastionScheduler.get_bastions():
         conf = Bastion.load_json(Bastion.get_creds_path_resolve(context_name))
-        rich.print(
-            f"Bastion: [green]{context_name}[/green] "
-            f"Local Port: [red]{conf.get('local-port', 'Not Specified')}[/red] "
-            f"Target: [orange]{conf.get('target-ip', 'Not Specified')}"
-            f":{conf.get('target-port', 'Not Specified')}[/orange]")
+        table.add_row(context_name, conf.get('local-port', 'Not Specified'),
+                      conf.get('target-ip', 'Not Specified'),
+                      conf.get('target-port', 'Not Specified'))
+    console.print(table)
