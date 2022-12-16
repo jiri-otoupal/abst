@@ -1,11 +1,23 @@
+import eventlet
 import lastversion
+import requests
 import rich
 import semantic_version
+from requests import ConnectTimeout
 
 from abst import __version__
 
 
 class Notifier:
+    @classmethod
+    def check_pypi_available(cls):
+        try:
+            with eventlet.Timeout(0.3):
+                req = requests.get("https://pypi.org/")
+                return req.status_code == 200
+        except eventlet.timeout.Timeout:
+            return False
+
     @classmethod
     def get_last_version(cls):
         return lastversion.latest(__version__.__pypi_repo__)
@@ -17,7 +29,7 @@ class Notifier:
 
     @classmethod
     def notify(cls):
-        if not cls.is_last_version():
+        if cls.check_pypi_available() and not cls.is_last_version():
             last = cls.get_last_version()
             rich.print(
                 f"[yellow]WARNING: You are using abst version {__version__.__version__}; however,"
