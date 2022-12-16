@@ -6,3 +6,4 @@ lastversion~=2.4.8
 oci~=2.90.0
 setuptools~=60.2.0
 semantic-version~=2.10.0
+eventlet~=0.33.2
