@@ -4,6 +4,7 @@ from time import sleep
 
 import rich
 from click import clear
+from rich.align import Align
 
 from abst.config import default_stack_location, default_stack_contents, \
     default_contexts_location
@@ -83,7 +84,8 @@ class BastionScheduler:
                               bastion.current_status)
             except:
                 pass
-        console.print(table)
+        centered_table = Align.center(table)
+        console.print(centered_table)
 
     @classmethod
     def __display_loop(cls):
