@@ -69,7 +69,6 @@ class BastionScheduler:
         console.clear()
         from rich.table import Table
         table = Table(title="Bastion Sessions", highlight=True)
-
         table.add_column("Name", justify="left", style="cyan", no_wrap=True)
         table.add_column("Local Port", style="magenta", no_wrap=True)
         table.add_column("Active", justify="right", style="green", no_wrap=True)
@@ -78,10 +77,10 @@ class BastionScheduler:
             conf = bastion.load_self_creds()
             active = bastion.connected and bastion.active_tunnel.poll() is None
             name = "default" if bastion.context_name is None else bastion.context_name
-            highlight = "green3" if active else "yellow"
+
             try:
-                table.add_row(name, conf.get('local-port', 'Not Specified'), active,
-                              f"[{highlight}]{active}[/{highlight}]")
+                table.add_row(name, conf.get('local-port', 'Not Specified'), str(active),
+                              bastion.current_status)
             except:
                 pass
         console.print(table)
