@@ -2,7 +2,7 @@ import rich
 from InquirerPy import inquirer
 
 from abst.config import default_config_keys
-from abst.oci_bastion import Bastion
+from abst.bastion_support.oci_bastion import Bastion
 
 
 def __upgrade(context_name, path):

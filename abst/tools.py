@@ -1,8 +1,6 @@
-import rich
-
-from abst.bastion_scheduler import BastionScheduler
+from abst.bastion_support.bastion_scheduler import BastionScheduler
 from abst.config import default_creds_path, default_contexts_location
-from abst.oci_bastion import Bastion
+from abst.bastion_support.oci_bastion import Bastion
 
 
 def get_context_path(context_name):

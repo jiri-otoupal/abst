@@ -148,7 +148,7 @@ class Bastion:
     @mark_on_exit
     def create_forward_loop(self, shell: bool = False):
 
-        from abst.bastion_scheduler import BastionScheduler
+        from abst.bastion_support.bastion_scheduler import BastionScheduler
         if BastionScheduler.stopped:
             return
 
@@ -343,7 +343,7 @@ class Bastion:
         deleted :param shell: If you use shell environment (can have different impacts on
         MAC and LINUX) :param sdata: :param ssh_tunnel_arg_str: :param status: :return:
         """
-        from abst.bastion_scheduler import BastionScheduler
+        from abst.bastion_support.bastion_scheduler import BastionScheduler
 
         for i in range(1, 3):
             if not status and not BastionScheduler.stopped:
@@ -478,7 +478,8 @@ class Bastion:
         p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, shell=shell)
         self.active_tunnel = p
-        while p.poll() is None:
+        tries = 3
+        while p.poll() is None and tries >= 0:
             line = p.stdout.readline().decode("utf-8").strip()
             line_err = None
 
@@ -500,6 +501,7 @@ class Bastion:
                     f"{datetime.datetime.now()}")
                 self.connected = True
                 self.current_status = "connected"
+                tries = 3
 
             if not line and not line_err:
                 sleep(0.1)
@@ -517,8 +519,12 @@ class Bastion:
             rich.print(
                 f"({self.get_print_name()}) "
                 f"Please check you configuration, for more info use --debug flag")
-            self.kill()
-            exit(255)
-
+            if tries <= 0:
+                self.kill()
+                self.current_status = "Failed"
+                exit(255)
+            else:
+                tries -= 1
+                self.current_status = f"failed {tries} left"
         self.connected = False
         return True

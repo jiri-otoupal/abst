@@ -7,7 +7,7 @@ from click import clear
 
 from abst.config import default_stack_location, default_stack_contents, \
     default_contexts_location
-from abst.oci_bastion import Bastion
+from abst.bastion_support.oci_bastion import Bastion
 from abst.wrappers import load_stack_decorator
 
 

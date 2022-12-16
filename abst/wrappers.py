@@ -14,7 +14,7 @@ def mark_on_exit(func):
 def resolve_context(func):
     def wrapper(*args, **kwargs):
         if len(args) == 1 or (len(args) > 2 and args[1] is None):
-            from abst.oci_bastion import Bastion
+            from abst.bastion_support.oci_bastion import Bastion
             conf = Bastion.load_config()
             func(args[0], conf["used_context"], **kwargs)
         else:

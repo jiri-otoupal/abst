@@ -11,11 +11,12 @@ from InquirerPy import inquirer
 from rich.logging import RichHandler
 
 from abst.__version__ import __version_name__, __version__
-from abst.bastion_scheduler import BastionScheduler
+from abst.bastion_support.bastion_scheduler import BastionScheduler
 from abst.cfg_func import __upgrade
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
-from abst.dialos import helm_login_dialog
-from abst.oci_bastion import Bastion
+from abst.dialogs import helm_login_dialog
+from abst.notifier.version_notifier import Notifier
+from abst.bastion_support.oci_bastion import Bastion
 from abst.tools import get_context_path, display_scheduled
 
 
@@ -53,7 +54,7 @@ def add(debug, context_name):
     :param context_name:
     :return:
     """
-    setup_debug(debug)
+    setup_calls(debug)
 
     BastionScheduler.add_bastion(context_name)
     display_scheduled()
@@ -63,7 +64,7 @@ def add(debug, context_name):
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default="default")
 def remove(debug, context_name):
-    setup_debug(debug)
+    setup_calls(debug)
     BastionScheduler.remove_bastion(context_name)
     display_scheduled()
 
@@ -71,7 +72,7 @@ def remove(debug, context_name):
 @parallel.command("run", help="Run All Bastions in fullauto")
 @click.option("--debug", is_flag=True, default=False)
 def run(debug):
-    setup_debug(debug)
+    setup_calls(debug)
     display_scheduled()
     confirm = inquirer.confirm(
         "Do you really want to run following contexts?").execute()
@@ -84,7 +85,7 @@ def run(debug):
 @parallel.command("display", help="Display current Bastions is stack")
 @click.option("--debug", is_flag=True, default=False)
 def display(debug):
-    setup_debug(debug)
+    setup_calls(debug)
 
     display_scheduled()
 
@@ -96,7 +97,7 @@ def display(debug):
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default="")
 def use(debug, context_name):
-    setup_debug(debug)
+    setup_calls(debug)
 
     used_context = context_name
     if context_name == "":
@@ -123,7 +124,7 @@ def use(debug, context_name):
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def generate(debug, context_name):
-    setup_debug(debug)
+    setup_calls(debug)
 
     path = get_context_path(context_name)
 
@@ -140,7 +141,7 @@ def generate(debug, context_name):
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def fill(debug, context_name):
-    setup_debug(debug)
+    setup_calls(debug)
 
     path = get_context_path(context_name)
 
@@ -177,7 +178,7 @@ def fill(debug, context_name):
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def locate(debug, context_name):
-    setup_debug(debug)
+    setup_calls(debug)
 
     path = get_context_path(context_name)
 
@@ -195,7 +196,7 @@ def locate(debug, context_name):
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def upgrade(debug, context_name):
-    setup_debug(debug)
+    setup_calls(debug)
 
     path = get_context_path(context_name)
 
@@ -237,9 +238,15 @@ def create():
     signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
 
 
+def setup_calls(debug):
+    setup_debug(debug)
+    Notifier.notify()
+
+
 def setup_debug(debug):
     if not debug:
         logging.disable(logging.DEBUG)
+        logging.disable(logging.INFO)
 
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s",
@@ -267,7 +274,7 @@ def managed():
 def single_forward(shell, debug, context_name):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
-    setup_debug(debug)
+    setup_calls(debug)
 
     if context_name is None:
         conf = Bastion.load_config()
@@ -288,7 +295,7 @@ def fullauto_forward(shell, debug, context_name):
     """Creates and connects to bastion sessions
      automatically until terminated"""
 
-    setup_debug(debug)
+    setup_calls(debug)
     if context_name is None:
         conf = Bastion.load_config()
         used_name = conf["used_context"]
@@ -310,7 +317,7 @@ def fullauto_forward(shell, debug, context_name):
 def single_managed(shell, debug, context_name):
     """Creates only one bastion session
      ,connects and reconnects until its ttl runs out"""
-    setup_debug(debug)
+    setup_calls(debug)
     if context_name is None:
         conf = Bastion.load_config()
         used_name = conf["used_context"]
@@ -329,7 +336,7 @@ def single_managed(shell, debug, context_name):
 def fullauto_managed(shell, debug, context_name):
     """Creates and connects to bastion sessions
      automatically until terminated"""
-    setup_debug(debug)
+    setup_calls(debug)
 
     if context_name is None:
         conf = Bastion.load_config()
@@ -347,7 +354,7 @@ def fullauto_managed(shell, debug, context_name):
 @click.argument("pod_name")
 @click.option("--debug", is_flag=True, default=False)
 def ssh_pod(pod_name, debug):
-    setup_debug(debug)
+    setup_calls(debug)
     found = list()
     try:
         rich.print("Fetching pods")
@@ -400,7 +407,7 @@ def helm_login(debug, edit):
     @return:
     :param debug:
     """
-    setup_debug(debug)
+    setup_calls(debug)
     from subprocess import PIPE
     try:
         _config = Bastion.load_config()
@@ -449,7 +456,7 @@ def helm_push(chart, debug):
     :param chart:
     :param debug:
     """
-    setup_debug(debug)
+    setup_calls(debug)
     try:
         _config = Bastion.load_config()
         if "helm" not in _config.keys():
@@ -484,7 +491,7 @@ def cp_secret(secret_name: str, target_namespace: str, source_namespace: str = "
     @return:
     :param debug:
     """
-    setup_debug(debug)
+    setup_calls(debug)
     try:
         rich.print("Trying Copy secret")
         os.system(

@@ -1,6 +1,6 @@
 import unittest
 
-from abst.oci_bastion import Bastion
+from abst.bastion_support.oci_bastion import Bastion
 
 
 class JsonCase(unittest.TestCase):
