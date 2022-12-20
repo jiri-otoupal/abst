@@ -469,7 +469,7 @@ def helm_push(chart, debug):
 
         selected = inquirer.select("Select remote", choices).execute()
         rich.print("Trying to push")
-        os.system(f'helm registry push {chart} {selected["remote"]}')
+        os.system(f'helm push {chart} {selected["remote"]}')
 
     except Exception as ex:
         rich.print(f"[red]Exception during execution {ex}[/red]")
