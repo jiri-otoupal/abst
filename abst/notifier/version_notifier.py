@@ -12,10 +12,10 @@ class Notifier:
     @classmethod
     def check_pypi_available(cls):
         try:
-            with eventlet.Timeout(0.3):
-                req = requests.get("https://pypi.org/")
+            with eventlet.Timeout(0.2):
+                req = requests.get("https://pypi.org/", timeout=0.2)
                 return req.status_code == 200
-        except eventlet.timeout.Timeout:
+        except eventlet.timeout.Timeout or ConnectTimeout:
             return False
 
     @classmethod
