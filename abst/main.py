@@ -74,8 +74,13 @@ def remove(debug, context_name):
 def run(debug):
     setup_calls(debug)
     display_scheduled()
-    confirm = inquirer.confirm(
-        "Do you really want to run following contexts?").execute()
+    try:
+        confirm = inquirer.confirm(
+            "Do you really want to run following contexts?"
+        ).execute()
+    except KeyError:
+        rich.print("Unknown inquirer error, continuing...")
+        confirm = True
     if not confirm:
         rich.print("[green]Cancelling, nothing started[/green]")
         exit(0)
@@ -90,10 +95,12 @@ def display(debug):
     display_scheduled()
 
 
-@cli.command("use",
-             help="Will Switch context to be used,"
-                  " use default for default context specified"
-                  " in creds.json")
+@cli.command(
+    "use",
+    help="Will Switch context to be used,"
+    " use default for default context specified"
+    " in creds.json",
+)
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default="")
 def use(debug, context_name):
@@ -116,7 +123,8 @@ def use(debug, context_name):
     rich.print("[green]Successfully Switched[/green]")
     rich.print(
         f"[white]Currently used context is[/white] [green]{used_context}[/green] "
-        f"[gray](This does not change context in .kube)[/gray]")
+        f"[gray](This does not change context in .kube)[/gray]"
+    )
     Bastion.write_creds_json(conf, default_conf_path)
 
 
@@ -134,10 +142,13 @@ def generate(debug, context_name):
     print(
         f"Sample credentials generated, please fill 'creds.json' in {creds_path} with "
         f"your credentials for this to work, you can use 'abst json fill "
-        f"{context_name if context_name else ''}'")
+        f"{context_name if context_name else ''}'"
+    )
 
 
-@config.command("fill", help="Fills Json config with credentials you enter interactively")
+@config.command(
+    "fill", help="Fills Json config with credentials you enter interactively"
+)
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def fill(debug, context_name):
@@ -162,8 +173,9 @@ def fill(debug, context_name):
     creds_json_ro = Bastion.load_json(path)
 
     for key, value in creds_json_ro.items():
-        n_dict[key] = inquirer.text(message=f"{key.capitalize()}:",
-                                    default=value).execute()
+        n_dict[key] = inquirer.text(
+            message=f"{key.capitalize()}:", default=value
+        ).execute()
     rich.print("\n[red]New json looks like this:[/red]")
     rich.print_json(data=n_dict)
     if inquirer.confirm(message="Write New Json ?", default=False).execute():
@@ -173,8 +185,9 @@ def fill(debug, context_name):
         rich.print("[red]Fill interrupted, nothing changed[/red]")
 
 
-@config.command("locate",
-                help="Locates Json config with credentials you enter interactively")
+@config.command(
+    "locate", help="Locates Json config with credentials you enter interactively"
+)
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def locate(debug, context_name):
@@ -183,16 +196,17 @@ def locate(debug, context_name):
     path = get_context_path(context_name)
 
     if path.exists():
-        rich.print(
-            f"[green]Config file location: {path.absolute()}[/green]")
+        rich.print(f"[green]Config file location: {path.absolute()}[/green]")
     else:
         rich.print(
             f"[red]Config does not exist yet, future location"
-            f" {path.absolute()}[/red]")
+            f" {path.absolute()}[/red]"
+        )
 
 
-@config.command("upgrade",
-                help="Locates Json config with credentials you enter interactively")
+@config.command(
+    "upgrade", help="Locates Json config with credentials you enter interactively"
+)
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def upgrade(debug, context_name):
@@ -209,9 +223,7 @@ def upgrade(debug, context_name):
 
 @cli.command("clean", help="Cleans all credentials created by abst")
 def clean():
-    """
-
-    """
+    """ """
 
     files = [*default_contexts_location.iterdir()]
     if default_creds_path.exists():
@@ -219,7 +231,8 @@ def clean():
     try:
         confirm = inquirer.confirm(
             "Do you really want to Delete all Creds file ? All of credentials will be "
-            "lost").execute()
+            "lost"
+        ).execute()
         if not confirm:
             rich.print("[green]Cancelling, nothing changed[/green]")
             exit(0)
@@ -249,9 +262,10 @@ def setup_debug(debug):
         logging.disable(logging.INFO)
 
     logging.basicConfig(
-        level=logging.DEBUG if debug else logging.CRITICAL, format="%(message)s",
+        level=logging.DEBUG if debug else logging.CRITICAL,
+        format="%(message)s",
         datefmt="[%X]",
-        handlers=[RichHandler()]
+        handlers=[RichHandler()],
     )
 
 
@@ -265,15 +279,17 @@ def managed():
     pass
 
 
-@forward.command("single",
-                 help="Creates only one bastion session and keeps reconnecting until"
-                      " its deleted, does not create any more Bastion sessions")
+@forward.command(
+    "single",
+    help="Creates only one bastion session and keeps reconnecting until"
+    " its deleted, does not create any more Bastion sessions",
+)
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def single_forward(shell, debug, context_name):
     """Creates only one bastion session
-     ,connects and reconnects until its ttl runs out"""
+    ,connects and reconnects until its ttl runs out"""
     setup_calls(debug)
 
     if context_name is None:
@@ -285,15 +301,17 @@ def single_forward(shell, debug, context_name):
     Bastion(used_name).create_forward_loop(shell=shell)
 
 
-@forward.command("fullauto",
-                 help="Creates and connects to Bastion session indefinitely until "
-                      "terminated by user")
+@forward.command(
+    "fullauto",
+    help="Creates and connects to Bastion session indefinitely until "
+    "terminated by user",
+)
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def fullauto_forward(shell, debug, context_name):
     """Creates and connects to bastion sessions
-     automatically until terminated"""
+    automatically until terminated"""
 
     setup_calls(debug)
     if context_name is None:
@@ -308,15 +326,17 @@ def fullauto_forward(shell, debug, context_name):
         sleep(1)
 
 
-@managed.command("single",
-                 help="Creates only one bastion session and keeps reconnecting until"
-                      " its deleted, does not create any more Bastion sessions")
+@managed.command(
+    "single",
+    help="Creates only one bastion session and keeps reconnecting until"
+    " its deleted, does not create any more Bastion sessions",
+)
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def single_managed(shell, debug, context_name):
     """Creates only one bastion session
-     ,connects and reconnects until its ttl runs out"""
+    ,connects and reconnects until its ttl runs out"""
     setup_calls(debug)
     if context_name is None:
         conf = Bastion.load_config()
@@ -327,15 +347,17 @@ def single_managed(shell, debug, context_name):
     Bastion(used_name).create_managed_loop(shell=shell)
 
 
-@managed.command("fullauto",
-                 help="Creates and connects to Bastion session indefinitely until "
-                      "terminated by user")
+@managed.command(
+    "fullauto",
+    help="Creates and connects to Bastion session indefinitely until "
+    "terminated by user",
+)
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
 def fullauto_managed(shell, debug, context_name):
     """Creates and connects to bastion sessions
-     automatically until terminated"""
+    automatically until terminated"""
     setup_calls(debug)
 
     if context_name is None:
@@ -358,9 +380,11 @@ def ssh_pod(pod_name, debug):
     found = list()
     try:
         rich.print("Fetching pods")
-        pod_lines = subprocess.check_output(
-            f"kubectl get pods -A".split(" ")).decode().split(
-            "\n")
+        pod_lines = (
+            subprocess.check_output(f"kubectl get pods -A".split(" "))
+            .decode()
+            .split("\n")
+        )
     except FileNotFoundError:
         rich.print("[red]kubectl not found on this machine[/red]")
         return
@@ -370,21 +394,26 @@ def ssh_pod(pod_name, debug):
             found.append(pod_line)
 
     if len(found) > 1:
-        data = re.sub(' +', ' ', inquirer.select("Found more pods, choose one:",
-                                                 list(found)).execute()).split(" ")
-        pod_name_precise = \
-            data[1]
+        data = re.sub(
+            " +",
+            " ",
+            inquirer.select("Found more pods, choose one:", list(found)).execute(),
+        ).split(" ")
+        pod_name_precise = data[1]
     elif len(found) == 1:
         tmp = found.pop()
-        data = re.sub(' +', ' ', tmp).split(" ")
+        data = re.sub(" +", " ", tmp).split(" ")
         pod_name_precise = data[1]
     else:
         rich.print(f"[red]No pods with name {pod_name} found[/red]")
         return
 
-    rich.print(f"[green]Connecting to {pod_name_precise} in namespace: {data[0]}[/green]")
+    rich.print(
+        f"[green]Connecting to {pod_name_precise} in namespace: {data[0]}[/green]"
+    )
     os.system(
-        f"kubectl exec -n {data[0]} --stdin --tty {pod_name_precise} -- /bin/bash")
+        f"kubectl exec -n {data[0]} --stdin --tty {pod_name_precise} -- /bin/bash"
+    )
 
 
 @cli.group("cp")
@@ -399,8 +428,11 @@ def helm():
 
 @helm.command("login")
 @click.option("--debug", is_flag=True, default=False)
-@click.option("--edit", default=False,
-              help="Edit credentials with index as argument (starts from 1)")
+@click.option(
+    "--edit",
+    default=False,
+    help="Edit credentials with index as argument (starts from 1)",
+)
 def helm_login(debug, edit):
     """
     Copy Secret in current cluster from source namespace to target
@@ -409,13 +441,20 @@ def helm_login(debug, edit):
     """
     setup_calls(debug)
     from subprocess import PIPE
+
     try:
         _config = Bastion.load_config()
         if "helm" not in _config.keys():
             _config["helm"] = []
             host, password, remote, username = helm_login_dialog()
             _config["helm"].append(
-                {"host": host, "remote": remote, "username": username, "password": password})
+                {
+                    "host": host,
+                    "remote": remote,
+                    "username": username,
+                    "password": password,
+                }
+            )
             Bastion.write_creds_json(_config, default_conf_path)
             rich.print("Added Credentials")
         elif edit:
@@ -423,21 +462,32 @@ def helm_login(debug, edit):
                 _config["helm"] = []
 
             host, password, remote, username = helm_login_dialog()
-            _config["helm"][edit - 1] = {"host": host, "remote": remote, "username": username,
-                                         "password": password}
+            _config["helm"][edit - 1] = {
+                "host": host,
+                "remote": remote,
+                "username": username,
+                "password": password,
+            }
             rich.print_json(data=_config["helm"][edit - 1])
             if inquirer.confirm(message="Write New Json ?", default=False).execute():
                 Bastion.write_creds_json(_config, default_conf_path)
                 rich.print("Edited Credentials")
 
-        choices = [{"name": f'{choice["remote"]} {choice["username"]}', "value": choice} for choice
-                   in _config["helm"]]
+        choices = [
+            {"name": f'{choice["remote"]} {choice["username"]}', "value": choice}
+            for choice in _config["helm"]
+        ]
 
         selected = inquirer.select("Select login", choices).execute()
         rich.print("Trying to login")
         p = subprocess.Popen(
             f'helm registry login {selected["host"]} -u {selected["username"]} --password-stdin'.split(
-                " "), stdout=PIPE, stdin=PIPE, stderr=PIPE)
+                " "
+            ),
+            stdout=PIPE,
+            stdin=PIPE,
+            stderr=PIPE,
+        )
         rich.print(p.communicate(input=selected["password"].encode())[0].decode())
 
     except Exception as ex:
@@ -461,11 +511,15 @@ def helm_push(chart, debug):
         _config = Bastion.load_config()
         if "helm" not in _config.keys():
             _config["helm"] = []
-            rich.print(f"Please Fill in Repository details that"
-                       f" are going to be saved in {default_conf_path}"
-                       f" with command 'abst helm login'")
-        choices = [{"name": f'{choice["remote"]} {choice["username"]}', "value": choice} for choice
-                   in _config["helm"]]
+            rich.print(
+                f"Please Fill in Repository details that"
+                f" are going to be saved in {default_conf_path}"
+                f" with command 'abst helm login'"
+            )
+        choices = [
+            {"name": f'{choice["remote"]} {choice["username"]}', "value": choice}
+            for choice in _config["helm"]
+        ]
 
         selected = inquirer.select("Select remote", choices).execute()
         rich.print("Trying to push")
@@ -481,8 +535,12 @@ def helm_push(chart, debug):
 @click.argument("source_namespace")
 @click.argument("target_namespace")
 @click.option("--debug", is_flag=True, default=False)
-def cp_secret(secret_name: str, target_namespace: str, source_namespace: str = "default",
-              debug=False):
+def cp_secret(
+    secret_name: str,
+    target_namespace: str,
+    source_namespace: str = "default",
+    debug=False,
+):
     """
     Copy Secret in current cluster from source namespace to target
     @param secret_name: Secret Name
@@ -496,7 +554,8 @@ def cp_secret(secret_name: str, target_namespace: str, source_namespace: str = "
         rich.print("Trying Copy secret")
         os.system(
             f"kubectl get secret {secret_name} --namespace={source_namespace} -o yaml | sed "
-            f"'s/namespace: .*/namespace: {target_namespace}/' | kubectl apply -f -")
+            f"'s/namespace: .*/namespace: {target_namespace}/' | kubectl apply -f -"
+        )
     except FileNotFoundError:
         rich.print("[red]kubectl not found on this machine[/red]")
         return
@@ -507,7 +566,7 @@ def main():
         level=logging.DEBUG,
         format="%(message)s",
         datefmt="[%X]",
-        handlers=[RichHandler()]
+        handlers=[RichHandler()],
     )
     Bastion.create_default_location()
     cli()
@@ -517,5 +576,5 @@ signal.signal(signal.SIGINT, BastionScheduler.kill_all)
 signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
 signal.signal(signal.SIGABRT, BastionScheduler.kill_all)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
