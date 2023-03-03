@@ -3,7 +3,7 @@
 Manage your bastion sessions automatically without
 pain of creating them by clicking and copy pasting commands
 
-[![image](https://img.shields.io/pypi/v/abst.svg)](https://pypi.org/project/dvpn/)
+[![image](https://img.shields.io/pypi/v/abst.svg)](https://pypi.org/project/abst/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/abst)](https://pypi.org/project/abst/)
 [![Downloads](https://pepy.tech/badge/abst)](https://pepy.tech/project/abst)
 
