@@ -163,7 +163,6 @@ class Bastion:
             logging.debug(f"Exception {ex}")
             rich.print(f"[red]Invalid Config in abst[/red]")
             exit(1)
-            return  # Just for Pycharm
 
         bid, response = self.load_response(res)
 
@@ -215,7 +214,7 @@ class Bastion:
     def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port):
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
-        ssh_tunnel_arg_str = f"ssh -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} -vvv"
+        ssh_tunnel_arg_str = f"ssh -o ServerAliveInterval=20 -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} -vvv"
         self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
         return ssh_tunnel_arg_str
 
