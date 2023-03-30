@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import eventlet
 import lastversion
 import requests
@@ -6,16 +8,16 @@ import semantic_version
 from requests import ConnectTimeout
 
 from abst import __version__
+from abst.config import default_conf_path
 
 
 class Notifier:
     @classmethod
     def check_pypi_available(cls):
         try:
-            with eventlet.Timeout(0.2):
-                req = requests.get("https://pypi.org/", timeout=0.2)
-                return req.status_code == 200
-        except eventlet.timeout.Timeout or ConnectTimeout:
+            req = requests.get("https://pypi.org/", timeout=0.2)
+            return req.status_code == 200
+        except ConnectionError or ConnectTimeout:
             return False
 
     @classmethod
@@ -29,6 +31,16 @@ class Notifier:
 
     @classmethod
     def notify(cls):
+        from abst.bastion_support.oci_bastion import Bastion
+        cfg = Bastion.load_config()
+        dt = datetime.now()
+        if (dt - datetime.fromtimestamp(
+                cfg.get("last-check", 1677884000))).seconds < 60 * 60 * 8:
+            return
+
+        cfg["last-check"] = datetime.timestamp(dt)
+        Bastion.write_creds_json(cfg, default_conf_path)
+
         if cls.check_pypi_available() and not cls.is_last_version():
             last = cls.get_last_version()
             rich.print(

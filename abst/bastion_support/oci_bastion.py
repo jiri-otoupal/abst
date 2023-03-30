@@ -158,7 +158,7 @@ class Bastion:
         self.current_status = "creating bastion session"
 
         try:
-            host, ip, port, res = self.create_bastion_forward_port_session(creds)
+            host, ip, port, ssh_pub_key_path, res = self.create_bastion_forward_port_session(creds)
         except subprocess.CalledProcessError as ex:
             logging.debug(f"Exception {ex}")
             rich.print(f"[red]Invalid Config in abst[/red]")
@@ -185,7 +185,7 @@ class Bastion:
 
         ssh_tunnel_arg_str = self.run_ssh_tunnel_port_forward(bid, host, ip, port,
                                                               shell,
-                                                              creds.get("local-port", 22))
+                                                              creds.get("local-port", 22), ssh_pub_key_path)
 
         while status := (sdata := self.get_bastion_state())[
                             "lifecycle_state"] == "ACTIVE" and \
@@ -211,10 +211,10 @@ class Bastion:
         self.__run_ssh_tunnel_call(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args
 
-    def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port):
+    def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port, ssh_pub_key_path):
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
-        ssh_tunnel_arg_str = f"ssh -o ServerAliveInterval=20 -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} -vvv"
+        ssh_tunnel_arg_str = f"ssh -o ServerAliveInterval=20 -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} -vvv -i {ssh_pub_key_path.strip('.pub')}"
         self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
         return ssh_tunnel_arg_str
 
@@ -254,7 +254,7 @@ class Bastion:
             logging.debug(f"Added session id of {self.context_name}")
         except:
             pass
-        return creds["host"], creds["target-ip"], creds["target-port"], res
+        return creds["host"], creds["target-ip"], creds["target-port"], creds["ssh-pub-path"], res
 
     def create_bastion_ssh_session_managed(self, creds):
         ssh_key_path = self.get_ssh_pub_key_path(creds)
