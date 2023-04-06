@@ -17,7 +17,7 @@ class Notifier:
         try:
             req = requests.get("https://pypi.org/", timeout=0.2)
             return req.status_code == 200
-        except ConnectionError or ConnectTimeout:
+        except (ConnectionError, ConnectTimeout):
             return False
 
     @classmethod
@@ -27,7 +27,8 @@ class Notifier:
     @classmethod
     def is_last_version(cls):
         last = cls.get_last_version()
-        return semantic_version.Version(__version__.__version__) >= semantic_version.Version(str(last))
+        return semantic_version.Version(
+            __version__.__version__) >= semantic_version.Version(str(last))
 
     @classmethod
     def notify(cls):
