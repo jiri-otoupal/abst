@@ -8,6 +8,7 @@ from time import sleep
 import click
 import rich
 from InquirerPy import inquirer
+from requests import ConnectTimeout
 from rich.logging import RichHandler
 
 from abst.__version__ import __version_name__, __version__
@@ -98,8 +99,8 @@ def display(debug):
 @cli.command(
     "use",
     help="Will Switch context to be used,"
-    " use default for default context specified"
-    " in creds.json",
+         " use default for default context specified"
+         " in creds.json",
 )
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default="")
@@ -253,7 +254,10 @@ def create():
 
 def setup_calls(debug):
     setup_debug(debug)
-    Notifier.notify()
+    try:
+        Notifier.notify()
+    except (ConnectionError, ConnectTimeout):
+        return False
 
 
 def setup_debug(debug):
@@ -282,7 +286,7 @@ def managed():
 @forward.command(
     "single",
     help="Creates only one bastion session and keeps reconnecting until"
-    " its deleted, does not create any more Bastion sessions",
+         " its deleted, does not create any more Bastion sessions",
 )
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
@@ -304,7 +308,7 @@ def single_forward(shell, debug, context_name):
 @forward.command(
     "fullauto",
     help="Creates and connects to Bastion session indefinitely until "
-    "terminated by user",
+         "terminated by user",
 )
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
@@ -329,7 +333,7 @@ def fullauto_forward(shell, debug, context_name):
 @managed.command(
     "single",
     help="Creates only one bastion session and keeps reconnecting until"
-    " its deleted, does not create any more Bastion sessions",
+         " its deleted, does not create any more Bastion sessions",
 )
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
@@ -350,7 +354,7 @@ def single_managed(shell, debug, context_name):
 @managed.command(
     "fullauto",
     help="Creates and connects to Bastion session indefinitely until "
-    "terminated by user",
+         "terminated by user",
 )
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
@@ -536,10 +540,10 @@ def helm_push(chart, debug):
 @click.argument("target_namespace")
 @click.option("--debug", is_flag=True, default=False)
 def cp_secret(
-    secret_name: str,
-    target_namespace: str,
-    source_namespace: str = "default",
-    debug=False,
+        secret_name: str,
+        target_namespace: str,
+        source_namespace: str = "default",
+        debug=False,
 ):
     """
     Copy Secret in current cluster from source namespace to target
