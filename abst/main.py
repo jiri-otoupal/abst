@@ -8,6 +8,7 @@ from time import sleep
 import click
 import rich
 from InquirerPy import inquirer
+from requests import ConnectTimeout
 from rich.logging import RichHandler
 
 from abst.__version__ import __version_name__, __version__
@@ -255,7 +256,10 @@ def create():
 
 def setup_calls(debug):
     setup_debug(debug)
-    Notifier.notify()
+    try:
+        Notifier.notify()
+    except (ConnectionError, ConnectTimeout):
+        return False
 
 
 def setup_debug(debug):
