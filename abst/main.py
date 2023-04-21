@@ -72,19 +72,21 @@ def remove(debug, context_name):
 
 @parallel.command("run", help="Run All Bastions in fullauto")
 @click.option("--debug", is_flag=True, default=False)
-def run(debug):
+@click.option("-y", is_flag=True, default=False)
+def run(debug, y):
     setup_calls(debug)
     display_scheduled()
-    try:
-        confirm = inquirer.confirm(
-            "Do you really want to run following contexts?"
-        ).execute()
-    except KeyError:
-        rich.print("Unknown inquirer error, continuing...")
-        confirm = True
-    if not confirm:
-        rich.print("[green]Cancelling, nothing started[/green]")
-        exit(0)
+    if not y:
+        try:
+            confirm = inquirer.confirm(
+                "Do you really want to run following contexts?"
+            ).execute()
+        except KeyError:
+            rich.print("Unknown inquirer error, continuing...")
+            confirm = True
+        if not confirm:
+            rich.print("[green]Cancelling, nothing started[/green]")
+            exit(0)
     BastionScheduler.run()
 
 
