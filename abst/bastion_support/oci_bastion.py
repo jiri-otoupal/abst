@@ -408,7 +408,7 @@ class Bastion:
                                                                target_resource_details=oci.bastion.models.CreateManagedSshSessionTargetResourceDetails(
                                                                    session_type="MANAGED_SSH",
                                                                    target_resource_id=resource_id,
-                                                                   target_os_username=os_username),
+                                                                   target_resource_operating_system_user_name=os_username),
                                                                key_details=oci.bastion.models.PublicKeyDetails(
                                                                    public_key_content=public_key),
                                                                display_name=name,
