@@ -110,13 +110,13 @@ class Bastion:
             self.current_status = "creating bastion session succeeded"
             rich.print(
                 f"Created Session with id '{bid}' on Bastion {self.get_print_name()} "
-                f"'{response['data']['bastion-name']}'")
+                f"'{response['bastion_name']}'")
 
         rich.print("Auto resolving target details from response")
         host = creds["host"]
-        target_details = response["target-resource-details"]
-        ip = target_details["target-resource-private-ip-address"]
-        port = target_details["target-resource-port"]
+        target_details = response["target_resource_details"]
+        ip = target_details["target_resource_private_ip_address"]
+        port = target_details["target_resource_port"]
 
         self.current_status = "waiting for session init"
         self.wait_for_prepared()
