@@ -96,7 +96,6 @@ class Bastion:
             logging.debug(f"Exception {ex}")
             rich.print(f"[red]Invalid Config in abst {self.get_print_name()}[/red]")
             exit(1)
-            return  # Just for Pycharm
 
         bid, response = self.load_response(res)
 
@@ -473,9 +472,15 @@ class Bastion:
         :return:
         """
         args_split = self.process_args(already_split, shell, ssh_tunnel_arg_str)
+        try:
+            p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT, shell=shell)
+        except FileNotFoundError:
+            self.connected = False
+            rich.print("Failed to establish SSH tunnel due to different setting os shell terminal, [red]try to run "
+                       "again with --shell[/red]")
+            return True
 
-        p = subprocess.Popen(args_split, stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT, shell=shell)
         self.active_tunnel = p
         tries = 3
         while p.poll() is None and tries >= 0:
