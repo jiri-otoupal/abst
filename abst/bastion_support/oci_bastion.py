@@ -123,12 +123,18 @@ class Bastion:
         sleep(1)  # Precaution init delay
 
         self.current_status = "digging tunnel"
-        ssh_tunnel_args = self.run_ssh_tunnel_managed_session(bid, host,
-                                                              creds["private-key-path"],
-                                                              creds[
-                                                                  "resource-os-username"],
-                                                              ip, port,
-                                                              shell)
+        ssh_tunnel_args, exit_code = self.run_ssh_tunnel_managed_session(bid, host,
+                                                                         creds["private-key-path"],
+                                                                         creds[
+                                                                             "resource-os-username"],
+                                                                         ip, port,
+                                                                         shell)
+        logging.info(f"SSH tunnel exited with code {exit_code}")
+        if exit_code == 0:
+            print(f"User requested termination {self.get_print_name()}")
+            self.current_status = "terminated by user"
+            self.kill()
+            return
 
         while status := (sdata := self.get_bastion_state())[
                             "lifecycle_state"] == "ACTIVE":
@@ -207,8 +213,8 @@ class Bastion:
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
 
         ssh_tunnel_args = f'ssh -i {private_key_path} -o ServerAliveInterval=20 -o ProxyCommand="ssh -i {private_key_path} -W %h:%p -p {port} {bid}@{host} -A" -p {port} {username}@{ip} -A'
-        self.__run_ssh_tunnel_call(ssh_tunnel_args, shell, already_split=True)
-        return ssh_tunnel_args
+        exit_code = self.__run_ssh_tunnel_call(ssh_tunnel_args, shell, already_split=True)
+        return ssh_tunnel_args, exit_code
 
     def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port, ssh_pub_key_path):
         print(f"Bastion {self.get_print_name()} initialized")
@@ -461,7 +467,7 @@ class Bastion:
 
     def __run_ssh_tunnel_call(self, ssh_tunnel_arg_str, shell, already_split=False):
 
-        os.system(ssh_tunnel_arg_str)
+        return os.system(ssh_tunnel_arg_str)
 
     def __run_ssh_tunnel(self, ssh_tunnel_arg_str, shell, already_split=False):
         """
