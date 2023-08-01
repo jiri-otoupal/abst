@@ -1,6 +1,5 @@
 from datetime import datetime
 
-import eventlet
 import lastversion
 import requests
 import rich
