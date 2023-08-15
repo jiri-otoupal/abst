@@ -308,7 +308,9 @@ def single_forward(shell, debug, context_name):
     else:
         used_name = context_name
 
-    Bastion(used_name).create_forward_loop(shell=shell)
+    Bastion(used_name, region=
+    Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None)).create_forward_loop(
+        shell=shell)
 
 
 @forward.command(
@@ -336,7 +338,9 @@ def fullauto_forward(shell, debug, context_name):
         used_name = context_name
 
     while True:
-        Bastion(used_name).create_forward_loop(shell=shell)
+        Bastion(used_name, region=
+        Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None)).create_forward_loop(
+            shell=shell)
 
         sleep(1)
 
@@ -378,7 +382,9 @@ def single_managed(shell, debug, context_name):
     else:
         used_name = context_name
 
-    Bastion(used_name).create_managed_loop(shell=shell)
+    Bastion(used_name, region=
+    Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None)).create_managed_loop(
+        shell=shell)
 
 
 @managed.command(
@@ -405,7 +411,9 @@ def fullauto_managed(shell, debug, context_name):
         used_name = context_name
 
     while True:
-        Bastion(used_name).create_managed_loop(shell=shell)
+        Bastion(used_name, region=
+        Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None)).create_managed_loop(
+            shell=shell)
 
         sleep(1)
 

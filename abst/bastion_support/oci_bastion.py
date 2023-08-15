@@ -23,8 +23,9 @@ class Bastion:
     stopped = False
     session_list = []
 
-    def __init__(self, context_name=None):
+    def __init__(self, context_name=None, region=None):
         self.context_name = context_name
+        self.region = region
         self.shell: bool = False
         self.connected: bool = False
         self.active_tunnel: subprocess.Popen = Optional[None]
@@ -42,6 +43,9 @@ class Bastion:
     def get_bastion_state(self) -> dict:
         session_id = self.response["id"]
         config = oci.config.from_file()
+        if self.region:
+            config["region"] = self.region
+
         req = oci.bastion.BastionClient(config).get_session(session_id)
 
         try:
@@ -66,11 +70,13 @@ class Bastion:
             print(f"Looks like Bastion is already deleted {self.get_print_name()}")
 
     @classmethod
-    def delete_bastion_session(cls, sess_id):
+    def delete_bastion_session(cls, sess_id, region=None):
         print("Removing Bastion session")
 
         try:
             config = oci.config.from_file()
+            if region:
+                config["region"] = region
             while True:
                 try:
                     if oci.bastion.BastionClient(config).get_session(

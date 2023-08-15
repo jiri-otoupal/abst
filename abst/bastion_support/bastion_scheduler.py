@@ -119,7 +119,8 @@ class BastionScheduler:
         for context_name in cls.__dry_stack:
             if cls.stopped:
                 return
-            bastion = Bastion(None if context_name == "default" else context_name)
+            bastion = Bastion(None if context_name == "default" else context_name, region=
+            Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None))
             cls.__live_stack.add(bastion)
             t = Thread(name=context_name, target=cls._run_indefinitely,
                        args=[bastion.create_forward_loop], daemon=True)
