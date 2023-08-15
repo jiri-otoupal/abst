@@ -150,7 +150,8 @@ class BastionScheduler:
             try:
                 print(f"Killing {sess}")
                 Bastion.current_status = "deleting"
-                Bastion.delete_bastion_session(sess)
+
+                Bastion.delete_bastion_session(sess, Bastion.session_desc.pop(sess))
             except Exception:
                 print(f"Looks like Bastion is already deleted {sess}")
             finally:

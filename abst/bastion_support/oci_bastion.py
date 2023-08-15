@@ -22,6 +22,7 @@ from abst.wrappers import mark_on_exit
 class Bastion:
     stopped = False
     session_list = []
+    session_desc = dict()
 
     def __init__(self, context_name=None, region=None):
         self.context_name = context_name
@@ -63,8 +64,9 @@ class Bastion:
             self.active_tunnel.send_signal(signal.SIGTERM)
             sess_id = self.response["id"]
             Bastion.session_list.remove(sess_id)
+            region = Bastion.session_desc.pop(sess_id)
             print(f"Cleaning {self.get_print_name()}")
-            self.delete_bastion_session(sess_id)
+            self.delete_bastion_session(sess_id, region)
             print(f"Removed Session {self.get_print_name()}")
         except Exception:
             print(f"Looks like Bastion is already deleted {self.get_print_name()}")
@@ -266,6 +268,7 @@ class Bastion:
         try:
             trs = Bastion.parse_response(res)
             Bastion.session_list.append(trs["id"])
+            Bastion.session_desc[trs["id"]] = creds.get("region", None)
             logging.debug(f"Added session id of {self.context_name}")
         except:
             pass
@@ -290,6 +293,7 @@ class Bastion:
             try:
                 trs = Bastion.parse_response(res)
                 Bastion.session_list.append(trs["id"])
+                Bastion.session_desc[trs["id"]] = creds.get("region", None)
                 logging.debug(f"Added session id of {self.context_name}")
             except:
                 pass
