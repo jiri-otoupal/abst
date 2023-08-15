@@ -284,6 +284,15 @@ class Bastion:
             exit(1)
 
     @classmethod
+    def get_contexts(cls) -> dict:
+        out = dict()
+        for context in default_contexts_location.iterdir():
+            with open(context, "r") as f:
+                out[context.name.replace(".json", "")] = json.load(f)
+
+        return out
+
+    @classmethod
     def get_creds_path_resolve(cls, context_name) -> Path:
         if context_name is None or context_name == "default":
             return default_creds_path

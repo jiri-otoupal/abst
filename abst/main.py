@@ -13,11 +13,11 @@ from rich.logging import RichHandler
 
 from abst.__version__ import __version_name__, __version__
 from abst.bastion_support.bastion_scheduler import BastionScheduler
+from abst.bastion_support.oci_bastion import Bastion
 from abst.cfg_func import __upgrade
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
 from abst.dialogs import helm_login_dialog
 from abst.notifier.version_notifier import Notifier
-from abst.bastion_support.oci_bastion import Bastion
 from abst.tools import get_context_path, display_scheduled
 
 
@@ -298,6 +298,10 @@ def single_forward(shell, debug, context_name):
     ,connects and reconnects until its ttl runs out"""
     setup_calls(debug)
 
+    if context_name == "?":
+        print_eligible("required only for Port Forward session")
+        return
+
     if context_name is None:
         conf = Bastion.load_config()
         used_name = conf["used_context"]
@@ -320,6 +324,11 @@ def fullauto_forward(shell, debug, context_name):
     automatically until terminated"""
 
     setup_calls(debug)
+
+    if context_name == "?":
+        print_eligible("required only for Port Forward session")
+        return
+
     if context_name is None:
         conf = Bastion.load_config()
         used_name = conf["used_context"]
@@ -330,6 +339,20 @@ def fullauto_forward(shell, debug, context_name):
         Bastion(used_name).create_forward_loop(shell=shell)
 
         sleep(1)
+
+
+def print_eligible(searched: str):
+    contexts = Bastion.get_contexts()
+    rich.print("[bold]Configured contexts:[/bold]")
+    for key, context in contexts.items():
+        do_skip = False
+        for value in context.values():
+            if searched in value:
+                do_skip = True
+                break
+        if do_skip:
+            continue
+        rich.print(key)
 
 
 @managed.command(
@@ -344,6 +367,11 @@ def single_managed(shell, debug, context_name):
     """Creates only one bastion session
     ,connects and reconnects until its ttl runs out"""
     setup_calls(debug)
+
+    if context_name == "?":
+        print_eligible("required only for Managed SSH session")
+        return
+
     if context_name is None:
         conf = Bastion.load_config()
         used_name = conf["used_context"]
@@ -365,6 +393,10 @@ def fullauto_managed(shell, debug, context_name):
     """Creates and connects to bastion sessions
     automatically until terminated"""
     setup_calls(debug)
+
+    if context_name == "?":
+        print_eligible("required only for Managed SSH session")
+        return
 
     if context_name is None:
         conf = Bastion.load_config()
