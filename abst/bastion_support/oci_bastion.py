@@ -246,13 +246,17 @@ class Bastion:
     def create_bastion_forward_port_session(self, creds):
         ssh_key_path = self.get_ssh_pub_key_path(creds)
 
+        if "region" not in creds.keys():
+            rich.print("Missing region, will use profile default")
+            rich.print("If you want to add region, run abst config upgrade <ctx-name>")
+
         res = self.__create_bastion_session_port_forward(creds["bastion-id"],
                                                          creds["target-ip"],
                                                          f'{creds["default-name"]}-ctx-'
                                                          f'{self.get_print_name()}',
                                                          int(creds["target-port"]),
                                                          ssh_key_path,
-                                                         int(creds["ttl"]), False)
+                                                         int(creds["ttl"]), False, creds.get("region", None))
         try:
             trs = Bastion.parse_response(res)
             Bastion.session_list.append(trs["id"])
@@ -263,6 +267,11 @@ class Bastion:
 
     def create_bastion_ssh_session_managed(self, creds):
         ssh_key_path = self.get_ssh_pub_key_path(creds)
+
+        if "region" not in creds.keys():
+            rich.print("Missing region, will use profile default")
+            rich.print("If you want to add region, run abst config upgrade <ctx-name>")
+
         try:
             res = self.__create_bastion_ssh_session_managed(creds["bastion-id"],
                                                             creds["resource-id"],
@@ -270,7 +279,7 @@ class Bastion:
                                                             f'{self.get_print_name()}',
                                                             creds["resource-os-username"],
                                                             ssh_key_path,
-                                                            int(creds["ttl"]), False
+                                                            int(creds["ttl"]), False, creds.get("region", None)
                                                             )
             try:
                 trs = Bastion.parse_response(res)
@@ -392,7 +401,7 @@ class Bastion:
 
     @classmethod
     def __create_bastion_session_port_forward(cls, bastion_id, ip, name, port: int, ssh_path,
-                                              ttl: int, shell):
+                                              ttl: int, shell, region: Optional[str]):
         public_key = get_public_key(ssh_path)
         sess_details = oci.bastion.models.CreateSessionDetails(bastion_id=bastion_id,
                                                                target_resource_details=oci.bastion.models.CreatePortForwardingSessionTargetResourceDetails(
@@ -405,6 +414,10 @@ class Bastion:
                                                                key_type="PUB",
                                                                session_ttl_in_seconds=ttl)
         config = oci.config.from_file()
+        # Overriding region from user profile
+        if region:
+            config["region"] = region
+
         req = oci.bastion.BastionClient(config).create_session(sess_details)
 
         print("Creating Port Forward Session")
@@ -414,7 +427,7 @@ class Bastion:
 
     @classmethod
     def __create_bastion_ssh_session_managed(cls, bastion_id, resource_id, name,
-                                             os_username, ssh_path, ttl, shell):
+                                             os_username, ssh_path, ttl, shell, region: Optional[str]):
         if Bastion.stopped:
             return
         public_key = get_public_key(ssh_path)
@@ -429,6 +442,10 @@ class Bastion:
                                                                key_type="PUB",
                                                                session_ttl_in_seconds=ttl)
         config = oci.config.from_file()
+
+        if region:
+            config["region"] = region
+
         req = oci.bastion.BastionClient(config).create_session(sess_details)
 
         print("Creating Managed SSH Session")
