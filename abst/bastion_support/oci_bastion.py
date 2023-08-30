@@ -258,6 +258,10 @@ class Bastion:
             rich.print("Missing region, will use profile default")
             rich.print("If you want to add region, run abst config upgrade <ctx-name>")
 
+        if not Path(ssh_key_path).exists():
+            rich.print("[red]SSH key has invalid path[/red]")
+            exit(1)
+
         res = self.__create_bastion_session_port_forward(creds["bastion-id"],
                                                          creds["target-ip"],
                                                          f'{creds["default-name"]}-ctx-'
@@ -280,6 +284,10 @@ class Bastion:
         if "region" not in creds.keys():
             rich.print("Missing region, will use profile default")
             rich.print("If you want to add region, run abst config upgrade <ctx-name>")
+
+        if not Path(ssh_key_path).exists():
+            rich.print("[red]SSH key has invalid path[/red]")
+            exit(1)
 
         try:
             res = self.__create_bastion_ssh_session_managed(creds["bastion-id"],
