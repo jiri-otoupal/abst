@@ -3,6 +3,7 @@ import os
 import re
 import signal
 import subprocess
+from pathlib import Path
 from time import sleep
 
 import click
@@ -41,6 +42,18 @@ def parallel():
      the same time, useful when working with multiple clusters
     """
     pass
+
+
+@cli.group(help="Contexts commands")
+def context():
+    pass
+
+
+@context.command("list")
+def _list():
+    rich.print("Contexts:")
+    for file in Path(default_contexts_location).iterdir():
+        rich.print(f"    {file.name.replace('.json', '')}")
 
 
 @parallel.command("add", help="Add Bastion to stack")
