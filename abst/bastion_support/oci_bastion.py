@@ -23,6 +23,7 @@ class Bastion:
     stopped = False
     session_list = []
     session_desc = dict()
+    custom_ssh_options: str = "-o StrictHostKeyChecking=no -o ServerAliveInterval=20"
 
     def __init__(self, context_name=None, region=None):
         self.context_name = context_name
@@ -220,7 +221,7 @@ class Bastion:
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
 
-        ssh_tunnel_args = (f'ssh -i {private_key_path} -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=20 '
+        ssh_tunnel_args = (f'ssh -i {private_key_path} {self.custom_ssh_options} '
                            f'-o ProxyCommand="ssh -i {private_key_path} -W %h:%p -p {port} {bid}@{host} -A" -p {port} '
                            f'{username}@{ip} -A')
         exit_code = self.__run_ssh_tunnel_call(ssh_tunnel_args, shell, already_split=True)
@@ -229,7 +230,7 @@ class Bastion:
     def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port, ssh_pub_key_path):
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
-        ssh_tunnel_arg_str = f"ssh -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=20 -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} -vvv -i {ssh_pub_key_path.strip('.pub')}"
+        ssh_tunnel_arg_str = f"ssh {self.custom_ssh_options} -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} -vvv -i {ssh_pub_key_path.strip('.pub')}"
         self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
         return ssh_tunnel_arg_str
 
