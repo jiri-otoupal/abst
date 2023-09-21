@@ -23,7 +23,7 @@ class Bastion:
     stopped = False
     session_list = []
     session_desc = dict()
-    custom_ssh_options: str = "-o StrictHostKeyChecking=no -o ServerAliveInterval=20 -o UserKnownHostsFile=/dev/null"
+    custom_ssh_options: str = "-o ServerAliveInterval=20"
 
     def __init__(self, context_name=None, region=None):
         self.context_name = context_name
