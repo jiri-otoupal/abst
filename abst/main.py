@@ -60,7 +60,8 @@ def _list():
 @context.command(help="Will display JSON format of context")
 @click.argument("name")
 def display(name):
-    if name in [file.name.replace(".json", "") for file in Path(default_contexts_location).iterdir()]:
+    if name in [file.name.replace(".json", "") for file in
+                Path(default_contexts_location).iterdir()]:
         rich.print("[bold]Context config contents:[/bold]\n")
         with open(Path(default_contexts_location) / (name + ".json"), "r") as f:
             rich.print_json(data=json.load(f))
@@ -300,48 +301,9 @@ def setup_debug(debug):
     )
 
 
-@create.group(help="Group of commands for Creating Port Forward Sessions")
-def forward():
-    pass
-
-
-@create.group(help="Group of commands for Creating Managed SSH Sessions")
-def managed():
-    pass
-
-
-@forward.command(
-    "single",
-    help="Creates only one bastion session and keeps reconnecting until"
-         " its deleted, does not create any more Bastion sessions",
-)
-@click.option("--shell", is_flag=True, default=False)
-@click.option("--debug", is_flag=True, default=False)
-@click.argument("context-name", default=None, required=False)
-def single_forward(shell, debug, context_name):
-    """Creates only one bastion session
-    ,connects and reconnects until its ttl runs out"""
-    setup_calls(debug)
-
-    if context_name == "?":
-        print_eligible("required only for Port Forward session")
-        return
-
-    if context_name is None:
-        conf = Bastion.load_config()
-        used_name = conf["used_context"]
-    else:
-        used_name = context_name
-
-    Bastion(used_name, region=
-    Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None)).create_forward_loop(
-        shell=shell)
-
-
-@forward.command(
-    "fullauto",
-    help="Creates and connects to Bastion session indefinitely until "
-         "terminated by user",
+@create.command(
+    "forward",
+    help="Creates and connects to Bastion session indefinitely until terminated by user",
 )
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
@@ -364,7 +326,8 @@ def fullauto_forward(shell, debug, context_name):
 
     while True:
         Bastion(used_name, region=
-        Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None)).create_forward_loop(
+        Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region",
+                                                                            None)).create_forward_loop(
             shell=shell)
 
         sleep(1)
@@ -384,38 +347,9 @@ def print_eligible(searched: str):
         rich.print(key)
 
 
-@managed.command(
-    "single",
-    help="Creates only one bastion session and keeps reconnecting until"
-         " its deleted, does not create any more Bastion sessions",
-)
-@click.option("--shell", is_flag=True, default=False)
-@click.option("--debug", is_flag=True, default=False)
-@click.argument("context-name", default=None, required=False)
-def single_managed(shell, debug, context_name):
-    """Creates only one bastion session
-    ,connects and reconnects until its ttl runs out"""
-    setup_calls(debug)
-
-    if context_name == "?":
-        print_eligible("required only for Managed SSH session")
-        return
-
-    if context_name is None:
-        conf = Bastion.load_config()
-        used_name = conf["used_context"]
-    else:
-        used_name = context_name
-
-    Bastion(used_name, region=
-    Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None)).create_managed_loop(
-        shell=shell)
-
-
-@managed.command(
-    "fullauto",
-    help="Creates and connects to Bastion session indefinitely until "
-         "terminated by user",
+@create.command(
+    "managed",
+    help="Creates and connects to Bastion session indefinitely until terminated by user",
 )
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
@@ -437,7 +371,8 @@ def fullauto_managed(shell, debug, context_name):
 
     while True:
         Bastion(used_name, region=
-        Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None)).create_managed_loop(
+        Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region",
+                                                                            None)).create_managed_loop(
             shell=shell)
 
         sleep(1)

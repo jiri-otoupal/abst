@@ -59,10 +59,7 @@ pip3 install abst
 
 ###### Both commands do automatic reconnect on idle SSH Tunnel termination
 
-* `abst create forward/managed single {context}` for single bastion session with persisting SSH
-  connection, leave
-  context empty if you want to use default
-* `abst create forward/managed fullauto {context}` for automatic Bastion session creation once
+* `abst create forward/managed {context}` for automatic Bastion session creation once
   deleted, will keep your,
   leave context empty if you want to use default
   connection alive till you kill this script
