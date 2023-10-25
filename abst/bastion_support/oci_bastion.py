@@ -29,6 +29,7 @@ class Bastion:
         self.context_name = context_name
         self.region = region
         self.shell: bool = False
+        self.tries: int = 10
         self.connected: bool = False
         self.active_tunnel: subprocess.Popen = Optional[None]
         self.response: Optional[dict] = None
@@ -535,8 +536,7 @@ class Bastion:
             return True
 
         self.active_tunnel = p
-        tries = 3
-        while p.poll() is None and tries >= 0:
+        while p.poll() is None and self.tries >= 0:
             line = p.stdout.readline().decode("utf-8").strip()
             line_err = None
 
@@ -558,7 +558,7 @@ class Bastion:
                     f"{datetime.datetime.now()}")
                 self.connected = True
                 self.current_status = "connected"
-                tries = 3
+                self.tries = 10
 
             if not line and not line_err:
                 sleep(0.1)
@@ -576,13 +576,14 @@ class Bastion:
             rich.print(
                 f"({self.get_print_name()}) "
                 f"Please check you configuration, for more info use --debug flag")
-            rich.print("This can also happen when ip changed in .ssh/known_hosts, delete it and try again")
-            if tries <= 0:
+            rich.print("[red]This can also happen when ip changed in [yellow]~/.ssh/known_hosts[/yellow], delete it and"
+                       "try again[/red]")
+            if self.tries <= 0:
                 self.kill()
                 self.current_status = "Failed"
                 exit(255)
             else:
-                tries -= 1
-                self.current_status = f"failed {tries} left"
+                self.tries -= 1
+                self.current_status = f"failed {self.tries} left"
         self.connected = False
         return True
