@@ -576,8 +576,9 @@ class Bastion:
             rich.print(
                 f"({self.get_print_name()}) "
                 f"Please check you configuration, for more info use --debug flag")
-            rich.print("[red]This can also happen when ip changed in [yellow]~/.ssh/known_hosts[/yellow], delete it and"
-                       "try again[/red]")
+            rich.print("[red]If this continues to happen without connection it can be because ip changed in ["
+                       "yellow]~/.ssh/known_hosts[/yellow], delete it and"
+                       " try again[/red]")
             if self.tries <= 0:
                 self.kill()
                 self.current_status = "Failed"
