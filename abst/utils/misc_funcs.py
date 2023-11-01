@@ -1,10 +1,14 @@
+import json
 import logging
+from pathlib import Path
+from typing import Optional
 
 import rich
 from requests import ConnectTimeout
 from rich.logging import RichHandler
 
 from abst.bastion_support.oci_bastion import Bastion
+from abst.config import default_contexts_location
 from abst.notifier.version_notifier import Notifier
 
 
@@ -41,3 +45,15 @@ def print_eligible(searched: str):
         if do_skip:
             continue
         rich.print(key)
+
+
+def get_context_data(name) -> Optional[dict]:
+    if name in [file.name.replace(".json", "") for file in
+                Path(default_contexts_location).iterdir()]:
+        rich.print("[bold]Context config contents:[/bold]\n")
+        with open(Path(default_contexts_location) / (name + ".json"), "r") as f:
+            data = json.load(f)
+            return data
+    else:
+        rich.print("[red]Context does not exists[/red]")
+        return None

@@ -257,6 +257,7 @@ class Bastion:
 
     def create_bastion_forward_port_session(self, creds):
         ssh_key_path = self.get_ssh_pub_key_path(creds)
+        cfg = Bastion.load_config()
 
         if "region" not in creds.keys():
             rich.print("Missing region, will use profile default")
@@ -266,12 +267,17 @@ class Bastion:
             rich.print("[red]SSH key has invalid path[/red]")
             exit(1)
 
+        ssh_pub_path = creds.get(ssh_key_path, cfg.get("ssh-pub-path", "No Public key supplied"))
+
+        if ssh_pub_path == "No Public key supplied":
+            raise Exception(ssh_pub_path)
+
         res = self.__create_bastion_session_port_forward(creds["bastion-id"],
                                                          creds["target-ip"],
                                                          f'{creds["default-name"]}-ctx-'
                                                          f'{self.get_print_name()}',
                                                          int(creds["target-port"]),
-                                                         ssh_key_path,
+                                                         ssh_pub_path,
                                                          int(creds["ttl"]), False, creds.get("region", None))
         try:
             trs = Bastion.parse_response(res)
@@ -280,10 +286,11 @@ class Bastion:
             logging.debug(f"Added session id of {self.context_name}")
         except:
             pass
-        return creds["host"], creds["target-ip"], creds["target-port"], creds["ssh-pub-path"], res
+        return creds["host"], creds["target-ip"], creds["target-port"], ssh_pub_path, res
 
     def create_bastion_ssh_session_managed(self, creds):
         ssh_key_path = self.get_ssh_pub_key_path(creds)
+        cfg = Bastion.load_config()
 
         if "region" not in creds.keys():
             rich.print("Missing region, will use profile default")
@@ -293,13 +300,18 @@ class Bastion:
             rich.print("[red]SSH key has invalid path[/red]")
             exit(1)
 
+        ssh_pub_path = creds.get(ssh_key_path, cfg.get("ssh-pub-path", "No Public key supplied"))
+
+        if ssh_pub_path == "No Public key supplied":
+            raise Exception(ssh_pub_path)
+
         try:
             res = self.__create_bastion_ssh_session_managed(creds["bastion-id"],
                                                             creds["resource-id"],
                                                             f'{creds["default-name"]}-ctx-'
                                                             f'{self.get_print_name()}',
                                                             creds["resource-os-username"],
-                                                            ssh_key_path,
+                                                            ssh_pub_path,
                                                             int(creds["ttl"]), False, creds.get("region", None)
                                                             )
             try:
@@ -368,11 +380,22 @@ class Bastion:
 
     @classmethod
     def create_default_location(cls):
+
         Path(default_creds_path.parent).mkdir(exist_ok=True)
         Path(default_contexts_location).mkdir(exist_ok=True)
 
         if not default_conf_path.exists():
             cls.write_creds_json(default_conf_contents, default_conf_path)
+        else:
+            something_changed = False
+            data = Bastion.load_config()
+            for key, value in default_conf_contents.items():
+                if key not in data.keys():
+                    data[key] = value
+                    something_changed = True
+            if something_changed:
+                cls.write_creds_json(default_conf_contents, default_conf_path)
+                rich.print("[green]Updated .abst/config file[/green]")
 
     @classmethod
     def write_creds_json(cls, td: dict, path: Path):
