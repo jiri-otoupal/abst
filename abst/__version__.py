@@ -10,7 +10,7 @@ __description__ = (
     "CLI Command making OCI Bastion and kubernetes usage simple and fast"
 )
 
-__version__ = "2.1.6"
+__version__ = "2.1.7"
 __author__ = "Jiri Otoupal"
 __author_email__ = "jiri-otoupal@ips-database.eu"
 __license__ = "MIT"
