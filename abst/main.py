@@ -11,12 +11,12 @@ from abst.__version__ import __version_name__, __version__
 from abst.bastion_support.bastion_scheduler import BastionScheduler
 from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
-from abst.config_cli.commands import config
-from abst.context.commands import context
-from abst.cp_cli.commands import cp
-from abst.helm_cli.commands import helm
-from abst.kubectl_cli.commands import ssh_pod, log_pod
-from abst.parallel.commands import parallel
+from abst.cli_commands.config_cli import config
+from abst.cli_commands.context.commands import context
+from abst.cli_commands.cp_cli.commands import cp
+from abst.cli_commands.helm_cli.commands import helm
+from abst.cli_commands.kubectl_cli.commands import ssh_pod, log_pod
+from abst.cli_commands.parallel import parallel
 from abst.utils.misc_funcs import setup_calls
 
 
