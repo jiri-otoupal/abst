@@ -11,7 +11,7 @@ from abst.dialogs import helm_login_dialog
 from abst.utils.misc_funcs import setup_calls
 
 
-@click.group("helm")
+@click.group("helm", help="Commands for helm and docker")
 def helm():
     pass
 

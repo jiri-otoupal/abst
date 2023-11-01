@@ -6,12 +6,12 @@ import rich
 from abst.utils.misc_funcs import setup_calls
 
 
-@click.group("cp")
+@click.group("cp", help="Copy commands for special usage")
 def cp():
     pass
 
 
-@cp.command("login")
+@cp.command("login", help="Login to docker and helm registry")
 @click.argument("secret_name")
 @click.argument("source_namespace")
 @click.argument("target_namespace")
