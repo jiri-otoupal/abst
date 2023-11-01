@@ -1,11 +1,9 @@
-import logging
 import os
 import signal
 
 import click
 import rich
 from InquirerPy import inquirer
-from rich.logging import RichHandler
 
 from abst.__version__ import __version_name__, __version__
 from abst.bastion_support.bastion_scheduler import BastionScheduler
@@ -85,12 +83,6 @@ def clean():
 
 
 def main():
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[RichHandler()],
-    )
     Bastion.create_default_location()
     cli()
 
