@@ -10,13 +10,14 @@ from rich.logging import RichHandler
 from abst.__version__ import __version_name__, __version__
 from abst.bastion_support.bastion_scheduler import BastionScheduler
 from abst.bastion_support.oci_bastion import Bastion
-from abst.config import default_creds_path, default_contexts_location, default_conf_path
-from abst.cli_commands.config_cli import config
+from abst.cli_commands.config_cli.commands import config
 from abst.cli_commands.context.commands import context
 from abst.cli_commands.cp_cli.commands import cp
+from abst.cli_commands.create_cli.commands import create
 from abst.cli_commands.helm_cli.commands import helm
 from abst.cli_commands.kubectl_cli.commands import ssh_pod, log_pod
-from abst.cli_commands.parallel import parallel
+from abst.cli_commands.parallel.commands import parallel
+from abst.config import default_creds_path, default_contexts_location, default_conf_path
 from abst.utils.misc_funcs import setup_calls
 
 
@@ -105,6 +106,7 @@ cli.add_command(helm)
 cli.add_command(cp)
 cli.add_command(ssh_pod)
 cli.add_command(log_pod)
+cli.add_command(create)
 
 if __name__ == "__main__":
     main()

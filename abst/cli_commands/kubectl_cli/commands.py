@@ -6,11 +6,10 @@ import click
 import rich
 from InquirerPy import inquirer
 
-from abst.main import cli
 from abst.utils.misc_funcs import setup_calls
 
 
-@cli.command("ssh", help="Will SSH into pod with containing string name")
+@click.command("ssh", help="Will SSH into pod with containing string name")
 @click.argument("pod_name")
 @click.option("--debug", is_flag=True, default=False)
 def ssh_pod(pod_name, debug):
@@ -52,7 +51,7 @@ def ssh_pod(pod_name, debug):
     )
 
 
-@cli.command("logs", help="Will get logs from a pod with containing string name")
+@click.command("logs", help="Will get logs from a pod with containing string name")
 @click.argument("pod_name")
 @click.option("--debug", is_flag=True, default=False)
 def log_pod(pod_name, debug):
