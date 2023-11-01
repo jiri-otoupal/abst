@@ -380,7 +380,6 @@ class Bastion:
 
     @classmethod
     def create_default_location(cls):
-
         Path(default_creds_path.parent).mkdir(exist_ok=True)
         Path(default_contexts_location).mkdir(exist_ok=True)
 

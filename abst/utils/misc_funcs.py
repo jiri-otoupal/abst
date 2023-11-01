@@ -24,7 +24,8 @@ def setup_debug(debug):
     if not debug:
         logging.disable(logging.DEBUG)
         logging.disable(logging.INFO)
-
+    from imp import reload  # python 2.x don't need to import reload, use it directly
+    reload(logging)
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.CRITICAL,
         format="%(message)s",
