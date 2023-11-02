@@ -144,7 +144,7 @@ class Bastion:
         self.current_status = "digging tunnel"
         ssh_tunnel_args, exit_code = self.run_ssh_tunnel_managed_session(bid, host,
                                                                          str(Path(
-                                                                             private_key_path).expanduser()),
+                                                                             private_key_path).expanduser().resolve()),
                                                                          creds[
                                                                              "resource-os-username"],
                                                                          ip, port,
@@ -301,8 +301,8 @@ class Bastion:
             rich.print("Missing region, will use profile default")
             rich.print("If you want to add region, run abst config upgrade <ctx-name>")
 
-        ssh_pub_path = creds.get("ssh-pub-path",
-                                 cfg.get("ssh-pub-path", "No Public key supplied"))
+        ssh_pub_path = str(Path(creds.get("ssh-pub-path",
+                                          cfg.get("ssh-pub-path", "No Public key supplied"))).expanduser().resolve())
 
         if ssh_pub_path == "No Public key supplied":
             rich.print(
@@ -533,7 +533,7 @@ class Bastion:
         td["target-ip"] = "0.0.0.0 // This is required only for Port Forward session"
         td["local-port"] = "22"
         td["target-port"] = "22 // This is required only for Port Forward session"
-        td["ttl"] = "10800"
+        td["ttl"] = "3600"
         td["resource-id"] = "ocid... " \
                             "// This is required only for Managed SSH session"
         td["resource-os-username"] = "MyResourceName " \
