@@ -8,3 +8,4 @@ setuptools~=60.2.0
 semantic-version~=2.10.0
 eventlet~=0.33.2
 pyperclip~=1.8.2
+bext~=0.0.8

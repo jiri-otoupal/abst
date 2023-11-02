@@ -5,7 +5,9 @@ import click
 import pyperclip
 import rich
 
+from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_contexts_location, share_excluded_keys
+from abst.tools import get_context_path
 from abst.utils.misc_funcs import get_context_data, setup_calls
 
 
@@ -47,5 +49,19 @@ def share(name, debug=False):
         data.pop(key)
     data["default-name"] = "!YOUR NAME!"
     rich.print_json(data=data)
-    logging.info("Data transmitted into clipboard")
+    logging.debug("Data transmitted into clipboard")
     pyperclip.copy(str(data))
+
+
+@context.command(help="Will paste context from clipboard into provided context name")
+@click.option("--debug", is_flag=True, default=False)
+@click.argument("name")
+def paste(name, debug=False):
+    setup_calls(debug)
+
+    data = pyperclip.paste()
+    path = get_context_path(name)
+    if data is None:
+        return
+    Bastion.write_creds_json(data, path)
+    rich.print(f"Wrote config into ~/.abst/contexts/{name}.json")

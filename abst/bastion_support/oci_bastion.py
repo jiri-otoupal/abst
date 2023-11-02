@@ -11,6 +11,7 @@ from typing import Optional
 
 import oci
 import rich
+from bext import title
 from oci.exceptions import ServiceError
 
 from abst.config import default_creds_path, \
@@ -170,6 +171,8 @@ class Bastion:
         Bastion.shell = shell
         print(f"Loading Credentials for {self.get_print_name()}")
         creds = self.load_self_creds()
+        title(f'abst to {creds["default-name"]} port {creds["local-port"]}')
+
         self.current_status = "creating bastion session"
 
         try:
