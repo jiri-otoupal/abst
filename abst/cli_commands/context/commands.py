@@ -41,7 +41,7 @@ def display(name, debug=False):
 @click.argument("name")
 def share(name, debug=False):
     setup_calls(debug)
-
+    rich.print("Copied context into clipboard")
     data = get_context_data(name)
     if data is None:
         return
