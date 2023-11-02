@@ -100,6 +100,7 @@ class Bastion:
         Bastion.shell = shell
         print(f"Loading Credentials {self.get_print_name()}")
         creds = self.load_self_creds()
+        conf = Bastion.load_config()
 
         self.current_status = "creating bastion session"
         try:
@@ -128,6 +129,12 @@ class Bastion:
         target_details = response["target_resource_details"]
         ip = target_details["target_resource_private_ip_address"]
         port = target_details["target_resource_port"]
+        private_key_path = creds.get("private-key-path", conf.get("private-key-path",
+                                                                  "No supplied private key"))
+
+        if private_key_path == "No supplied private key":
+            rich.print("[red]No private key in credentials and config specified[/red]")
+            exit(1)
 
         self.current_status = "waiting for session init"
         self.wait_for_prepared()
@@ -136,7 +143,8 @@ class Bastion:
 
         self.current_status = "digging tunnel"
         ssh_tunnel_args, exit_code = self.run_ssh_tunnel_managed_session(bid, host,
-                                                                         creds["private-key-path"],
+                                                                         str(Path(
+                                                                             private_key_path).expanduser()),
                                                                          creds[
                                                                              "resource-os-username"],
                                                                          ip, port,
@@ -177,7 +185,8 @@ class Bastion:
         self.current_status = "creating bastion session"
 
         try:
-            host, ip, port, ssh_pub_key_path, res = self.create_bastion_forward_port_session(creds)
+            host, ip, port, ssh_pub_key_path, res = self.create_bastion_forward_port_session(
+                creds)
         except subprocess.CalledProcessError as ex:
             logging.debug(f"Exception {ex}")
             rich.print(f"[red]Invalid Config in abst[/red]")
@@ -204,7 +213,8 @@ class Bastion:
 
         ssh_tunnel_arg_str = self.run_ssh_tunnel_port_forward(bid, host, ip, port,
                                                               shell,
-                                                              creds.get("local-port", 22), ssh_pub_key_path, force)
+                                                              creds.get("local-port", 22),
+                                                              ssh_pub_key_path, force)
 
         while status := (sdata := self.get_bastion_state())[
                             "lifecycle_state"] == "ACTIVE" and \
@@ -232,13 +242,15 @@ class Bastion:
         exit_code = self.__run_ssh_tunnel_call(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args, exit_code
 
-    def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port, ssh_pub_key_path, force=False):
+    def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port,
+                                    ssh_pub_key_path, force=False):
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
         additional_args = "" if not force else self.force_ssh_options
 
-        ssh_tunnel_arg_str = (f"ssh {self.custom_ssh_options} -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} "
-                              f"-vvv -i {ssh_pub_key_path.strip('.pub')} {additional_args}")
+        ssh_tunnel_arg_str = (
+            f"ssh {self.custom_ssh_options} -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} "
+            f"-vvv -i {ssh_pub_key_path.strip('.pub')} {additional_args}")
         self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
         return ssh_tunnel_arg_str
 
@@ -263,21 +275,7 @@ class Bastion:
         return bid, response
 
     def create_bastion_forward_port_session(self, creds):
-        ssh_key_path = self.get_ssh_pub_key_path(creds)
-        cfg = Bastion.load_config()
-
-        if "region" not in creds.keys():
-            rich.print("Missing region, will use profile default")
-            rich.print("If you want to add region, run abst config upgrade <ctx-name>")
-
-        if not Path(ssh_key_path).exists():
-            rich.print("[red]SSH key has invalid path[/red]")
-            exit(1)
-
-        ssh_pub_path = creds.get(ssh_key_path, cfg.get("ssh-pub-path", "No Public key supplied"))
-
-        if ssh_pub_path == "No Public key supplied":
-            raise Exception(ssh_pub_path)
+        ssh_pub_path = Bastion.init_session_details(creds)
 
         res = self.__create_bastion_session_port_forward(creds["bastion-id"],
                                                          creds["target-ip"],
@@ -285,7 +283,8 @@ class Bastion:
                                                          f'{self.get_print_name()}',
                                                          int(creds["target-port"]),
                                                          ssh_pub_path,
-                                                         int(creds["ttl"]), False, creds.get("region", None))
+                                                         int(creds["ttl"]), False,
+                                                         creds.get("region", None))
         try:
             trs = Bastion.parse_response(res)
             Bastion.session_list.append(trs["id"])
@@ -295,22 +294,27 @@ class Bastion:
             pass
         return creds["host"], creds["target-ip"], creds["target-port"], ssh_pub_path, res
 
-    def create_bastion_ssh_session_managed(self, creds):
-        ssh_key_path = self.get_ssh_pub_key_path(creds)
+    @classmethod
+    def init_session_details(cls, creds):
         cfg = Bastion.load_config()
-
         if "region" not in creds.keys():
             rich.print("Missing region, will use profile default")
             rich.print("If you want to add region, run abst config upgrade <ctx-name>")
 
-        if not Path(ssh_key_path).exists():
-            rich.print("[red]SSH key has invalid path[/red]")
-            exit(1)
-
-        ssh_pub_path = creds.get(ssh_key_path, cfg.get("ssh-pub-path", "No Public key supplied"))
+        ssh_pub_path = creds.get("ssh-pub-path",
+                                 cfg.get("ssh-pub-path", "No Public key supplied"))
 
         if ssh_pub_path == "No Public key supplied":
-            raise Exception(ssh_pub_path)
+            rich.print(
+                "[red]No public key in credentials and config specified[/red]")
+            exit(1)
+        if not Path(ssh_pub_path).exists():
+            rich.print("[red]SSH key has invalid path[/red]")
+            exit(1)
+        return ssh_pub_path
+
+    def create_bastion_ssh_session_managed(self, creds):
+        ssh_pub_path = Bastion.init_session_details(creds)
 
         try:
             res = self.__create_bastion_ssh_session_managed(creds["bastion-id"],
@@ -319,7 +323,8 @@ class Bastion:
                                                             f'{self.get_print_name()}',
                                                             creds["resource-os-username"],
                                                             ssh_pub_path,
-                                                            int(creds["ttl"]), False, creds.get("region", None)
+                                                            int(creds["ttl"]), False,
+                                                            creds.get("region", None)
                                                             )
             try:
                 trs = Bastion.parse_response(res)
@@ -451,7 +456,8 @@ class Bastion:
                 return True
 
     @classmethod
-    def __create_bastion_session_port_forward(cls, bastion_id, ip, name, port: int, ssh_path,
+    def __create_bastion_session_port_forward(cls, bastion_id, ip, name, port: int,
+                                              ssh_path,
                                               ttl: int, shell, region: Optional[str]):
         public_key = get_public_key(ssh_path)
         sess_details = oci.bastion.models.CreateSessionDetails(bastion_id=bastion_id,
@@ -478,7 +484,8 @@ class Bastion:
 
     @classmethod
     def __create_bastion_ssh_session_managed(cls, bastion_id, resource_id, name,
-                                             os_username, ssh_path, ttl, shell, region: Optional[str]):
+                                             os_username, ssh_path, ttl, shell,
+                                             region: Optional[str]):
         if Bastion.stopped:
             return
         public_key = get_public_key(ssh_path)
@@ -505,7 +512,15 @@ class Bastion:
 
     @classmethod
     def get_ssh_pub_key_path(cls, creds):
-        return str(Path(creds["ssh-pub-path"]).expanduser().resolve())
+        cfg = Bastion.load_config()
+        ssh_pub_path = creds.get("ssh-key-path",
+                                 cfg.get("ssh-pub-path", "No Public key supplied"))
+
+        if ssh_pub_path == "No Public key supplied":
+            rich.print(
+                "[red]No public key in credentials and config specified[/red]")
+            exit(1)
+        return str(Path(ssh_pub_path).expanduser().resolve())
 
     @classmethod
     def generate_sample_dict(cls):
@@ -560,8 +575,9 @@ class Bastion:
                                  stderr=subprocess.STDOUT, shell=shell)
         except FileNotFoundError:
             self.connected = False
-            rich.print("Failed to establish SSH tunnel due to different setting os shell terminal, [red]try to run "
-                       "again with --shell[/red]")
+            rich.print(
+                "Failed to establish SSH tunnel due to different setting os shell terminal, [red]try to run "
+                "again with --shell[/red]")
             return True
 
         self.active_tunnel = p
@@ -606,9 +622,10 @@ class Bastion:
                 f"({self.get_print_name()}) "
                 f"Please check you configuration, for more info use --debug flag")
             if self.tries <= 5:
-                rich.print("[red]If this continues to happen without connection it can be because ip changed in ["
-                           "yellow]~/.ssh/known_hosts[/yellow], delete it and"
-                           " try again[/red]")
+                rich.print(
+                    "[red]If this continues to happen without connection it can be because ip changed in ["
+                    "yellow]~/.ssh/known_hosts[/yellow], delete it and"
+                    " try again[/red]")
             if self.tries <= 0:
                 self.kill()
                 self.current_status = "Failed"
