@@ -4,20 +4,14 @@ from pathlib import Path
 from typing import Optional
 
 import rich
-from requests import ConnectTimeout
 from rich.logging import RichHandler
 
 from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_contexts_location
-from abst.notifier.version_notifier import Notifier
 
 
 def setup_calls(debug):
     setup_debug(debug)
-    try:
-        Notifier.notify()
-    except (ConnectionError, ConnectTimeout):
-        return False
 
 
 def setup_debug(debug):

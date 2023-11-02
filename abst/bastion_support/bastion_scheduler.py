@@ -6,9 +6,9 @@ import rich
 from click import clear
 from rich.align import Align
 
+from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_stack_location, default_stack_contents, \
     default_contexts_location
-from abst.bastion_support.oci_bastion import Bastion
 from abst.wrappers import load_stack_decorator
 
 
@@ -99,18 +99,18 @@ class BastionScheduler:
             sleep(3)
 
     @classmethod
-    def _run_indefinitely(cls, func):
+    def _run_indefinitely(cls, func, force: bool = False):
         while True:
             if cls.stopped:
                 return
             try:
-                func()
+                func(force=force)
             finally:
                 sleep(1)
 
     @classmethod
     @load_stack_decorator
-    def run(cls):
+    def run(cls, force=False):
         signal.signal(signal.SIGINT, BastionScheduler.kill_all)
         signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
         rich.print("Will run all Bastions in parallel")
@@ -123,7 +123,7 @@ class BastionScheduler:
             Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None))
             cls.__live_stack.add(bastion)
             t = Thread(name=context_name, target=cls._run_indefinitely,
-                       args=[bastion.create_forward_loop], daemon=True)
+                       args=[bastion.create_forward_loop, force], daemon=True)
             thread_list.append(t)
             t.start()
             rich.print(f"Started {context_name}")

@@ -4,6 +4,7 @@ import signal
 import click
 import rich
 from InquirerPy import inquirer
+from requests import ConnectTimeout
 
 from abst.__version__ import __version_name__, __version__
 from abst.bastion_support.bastion_scheduler import BastionScheduler
@@ -16,6 +17,7 @@ from abst.cli_commands.helm_cli.commands import helm
 from abst.cli_commands.kubectl_cli.commands import ssh_pod, log_pod
 from abst.cli_commands.parallel.commands import parallel
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
+from abst.notifier.version_notifier import Notifier
 from abst.utils.misc_funcs import setup_calls
 
 
@@ -83,6 +85,10 @@ def clean():
 
 
 def main():
+    try:
+        Notifier.notify()
+    except (ConnectionError, ConnectTimeout):
+        return False
     Bastion.create_default_location()
     cli()
 

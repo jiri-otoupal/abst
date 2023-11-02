@@ -25,6 +25,7 @@ class Bastion:
     session_list = []
     session_desc = dict()
     custom_ssh_options: str = "-o ServerAliveInterval=20"
+    force_ssh_options: str = "-o StrictHostKeyChecking=no -o ServerAliveInterval=20 -o UserKnownHostsFile=/dev/null"
 
     def __init__(self, context_name=None, region=None):
         self.context_name = context_name
@@ -162,7 +163,7 @@ class Bastion:
         self.kill()
 
     @mark_on_exit
-    def create_forward_loop(self, shell: bool = False):
+    def create_forward_loop(self, shell: bool = False, force: bool = False):
 
         from abst.bastion_support.bastion_scheduler import BastionScheduler
         if BastionScheduler.stopped:
@@ -203,7 +204,7 @@ class Bastion:
 
         ssh_tunnel_arg_str = self.run_ssh_tunnel_port_forward(bid, host, ip, port,
                                                               shell,
-                                                              creds.get("local-port", 22), ssh_pub_key_path)
+                                                              creds.get("local-port", 22), ssh_pub_key_path, force)
 
         while status := (sdata := self.get_bastion_state())[
                             "lifecycle_state"] == "ACTIVE" and \
@@ -231,10 +232,13 @@ class Bastion:
         exit_code = self.__run_ssh_tunnel_call(ssh_tunnel_args, shell, already_split=True)
         return ssh_tunnel_args, exit_code
 
-    def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port, ssh_pub_key_path):
+    def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port, ssh_pub_key_path, force=False):
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
-        ssh_tunnel_arg_str = f"ssh {self.custom_ssh_options} -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} -vvv -i {ssh_pub_key_path.strip('.pub')}"
+        additional_args = "" if not force else self.force_ssh_options
+
+        ssh_tunnel_arg_str = (f"ssh {self.custom_ssh_options} -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} "
+                              f"-vvv -i {ssh_pub_key_path.strip('.pub')} {additional_args}")
         self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
         return ssh_tunnel_arg_str
 

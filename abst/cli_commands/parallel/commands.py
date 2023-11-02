@@ -3,8 +3,8 @@ import rich
 from InquirerPy import inquirer
 
 from abst.bastion_support.bastion_scheduler import BastionScheduler
-from abst.utils.misc_funcs import setup_calls
 from abst.tools import display_scheduled
+from abst.utils.misc_funcs import setup_calls
 
 
 @click.group(help="Parallel Bastion Control group")
@@ -47,9 +47,13 @@ def remove(debug, context_name):
 
 @parallel.command("run", help="Run All Bastions in fullauto")
 @click.option("--debug", is_flag=True, default=False)
-@click.option("-y", is_flag=True, default=False)
-def run(debug, y):
+@click.option("-y", is_flag=True, default=False, help="Automatically confirm")
+@click.option("-f", "--force", is_flag=True, default=False, help="Will force connections ignoring security policies")
+def run(debug, y, force):
     setup_calls(debug)
+    if force:
+        rich.print("[red]Running in force mode[/red][gray] this mode is less secure as it is ignoring key checking and"
+                   " security policies involving known_hosts[/gray]")
     display_scheduled()
     if not y:
         try:
@@ -62,7 +66,7 @@ def run(debug, y):
         if not confirm:
             rich.print("[green]Cancelling, nothing started[/green]")
             exit(0)
-    BastionScheduler.run()
+    BastionScheduler.run(force)
 
 
 @parallel.command("display", help="Display current Bastions is stack")
