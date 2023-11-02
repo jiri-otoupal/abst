@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -63,5 +64,5 @@ def paste(name, debug=False):
     path = get_context_path(name)
     if data is None:
         return
-    Bastion.write_creds_json(data, path)
+    Bastion.write_creds_json(json.loads(data.replace("'", "\"")), path)
     rich.print(f"Wrote config into ~/.abst/contexts/{name}.json")
