@@ -48,7 +48,7 @@ def use(debug, context_name):
             contexts.insert(0, "default")
             used_context = inquirer.select("Select context to use:", contexts).execute()
 
-    Bastion.create_default_location()
+    Bastion.create_default_locations()
     conf = Bastion.load_config()
     conf["used_context"] = None if used_context == "default" else used_context
 
@@ -89,7 +89,7 @@ def main():
         Notifier.notify()
     except (ConnectionError, ConnectTimeout):
         return False
-    Bastion.create_default_location()
+    Bastion.create_default_locations()
     cli()
 
 

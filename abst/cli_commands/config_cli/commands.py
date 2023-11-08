@@ -5,8 +5,8 @@ from InquirerPy import inquirer
 from abst.bastion_support.oci_bastion import Bastion
 from abst.cfg_func import __upgrade
 from abst.config import default_contexts_location
-from abst.utils.misc_funcs import setup_calls
 from abst.tools import get_context_path
+from abst.utils.misc_funcs import setup_calls
 
 
 @click.group(help="Group of commands for operations with config")
@@ -22,7 +22,7 @@ def generate(debug, context_name):
 
     path = get_context_path(context_name)
 
-    Bastion.create_default_location()
+    Bastion.create_default_locations()
     td = Bastion.generate_sample_dict()
     creds_path = Bastion.write_creds_json(td, path)
     print(
@@ -44,13 +44,13 @@ def fill(debug, context_name):
 
     if not path.exists():
         rich.print("Generating sample Creds file")
-        Bastion.create_default_location()
+        Bastion.create_default_locations()
         td = Bastion.generate_sample_dict()
         Bastion.write_creds_json(td, path)
 
     if not default_contexts_location.exists():
         rich.print("Generating contexts location")
-        Bastion.create_default_location()
+        Bastion.create_default_locations()
 
     rich.print(f"[green]Filling {str(path)}")
     rich.print("Please fill field one by one as displayed")

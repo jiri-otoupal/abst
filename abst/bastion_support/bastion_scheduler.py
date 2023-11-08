@@ -1,6 +1,8 @@
 import signal
+from pathlib import Path
 from threading import Thread
 from time import sleep
+from typing import Optional
 
 import rich
 from click import clear
@@ -110,23 +112,37 @@ class BastionScheduler:
 
     @classmethod
     @load_stack_decorator
-    def run(cls, force=False):
+    def run(cls, force=False, set_dir: Optional[Path] = None):
         signal.signal(signal.SIGINT, BastionScheduler.kill_all)
         signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
         rich.print("Will run all Bastions in parallel")
         thread_list = []
 
-        for context_name in cls.__dry_stack:
-            if cls.stopped:
-                return
-            bastion = Bastion(None if context_name == "default" else context_name, region=
-            Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None))
-            cls.__live_stack.add(bastion)
-            t = Thread(name=context_name, target=cls._run_indefinitely,
-                       args=[bastion.create_forward_loop, force], daemon=True)
-            thread_list.append(t)
-            t.start()
-            rich.print(f"Started {context_name}")
+        if not set_dir:
+            for context_name in cls.__dry_stack:
+                if cls.stopped:
+                    return
+                bastion = Bastion(None if context_name == "default" else context_name, region=
+                Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None))
+                cls.__live_stack.add(bastion)
+                t = Thread(name=context_name, target=cls._run_indefinitely,
+                           args=[bastion.create_forward_loop, force], daemon=True)
+                thread_list.append(t)
+                t.start()
+                rich.print(f"Started {context_name}")
+        else:
+            for context_path in filter(lambda p: not str(p.name).startswith("."), set_dir.iterdir()):
+                if cls.stopped:
+                    return
+                context_name = context_path.name[:-5]
+                bastion = Bastion(None if context_name == "default" else context_name, region=
+                Bastion.load_json(context_path).get("region", None), direct_json_path=context_path)
+                cls.__live_stack.add(bastion)
+                t = Thread(name=context_name, target=cls._run_indefinitely,
+                           args=[bastion.create_forward_loop, force], daemon=True)
+                thread_list.append(t)
+                t.start()
+                rich.print(f"Started {context_name}")
 
         cls.__display_loop()
 

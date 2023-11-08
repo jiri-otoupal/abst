@@ -16,7 +16,7 @@ from oci.exceptions import ServiceError
 
 from abst.config import default_creds_path, \
     default_contexts_location, default_conf_path, \
-    default_conf_contents, get_public_key
+    default_conf_contents, get_public_key, default_parallel_sets_location
 from abst.wrappers import mark_on_exit
 
 
@@ -27,7 +27,7 @@ class Bastion:
     custom_ssh_options: str = "-o ServerAliveInterval=20"
     force_ssh_options: str = "-o StrictHostKeyChecking=no -o ServerAliveInterval=20 -o UserKnownHostsFile=/dev/null"
 
-    def __init__(self, context_name=None, region=None):
+    def __init__(self, context_name=None, region=None, direct_json_path=None):
         self.context_name = context_name
         self.region = region
         self.shell: bool = False
@@ -36,6 +36,7 @@ class Bastion:
         self.active_tunnel: subprocess.Popen = Optional[None]
         self.response: Optional[dict] = None
         self._current_status = None
+        self.direct_json_path = direct_json_path
 
     @property
     def current_status(self):
@@ -355,7 +356,9 @@ class Bastion:
             return default_contexts_location / (context_name + ".json")
 
     def get_creds_path(self) -> Path:
-        if self.context_name is None:
+        if self.direct_json_path:
+            return self.direct_json_path
+        elif self.context_name is None:
             return default_creds_path
         else:
             return default_contexts_location / (self.context_name + ".json")
@@ -391,9 +394,10 @@ class Bastion:
         return creds
 
     @classmethod
-    def create_default_location(cls):
+    def create_default_locations(cls):
         Path(default_creds_path.parent).mkdir(exist_ok=True)
         Path(default_contexts_location).mkdir(exist_ok=True)
+        Path(default_parallel_sets_location).mkdir(exist_ok=True)
 
         if not default_conf_path.exists():
             cls.write_creds_json(default_conf_contents, default_conf_path)

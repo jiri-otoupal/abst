@@ -3,6 +3,7 @@ import rich
 from InquirerPy import inquirer
 
 from abst.bastion_support.bastion_scheduler import BastionScheduler
+from abst.config import default_parallel_sets_location
 from abst.tools import display_scheduled
 from abst.utils.misc_funcs import setup_calls
 
@@ -36,6 +37,29 @@ def add(debug, context_name):
     display_scheduled()
 
 
+@parallel.command("create", help="Create folder for a parallel set")
+@click.option("--debug", is_flag=True, default=False)
+@click.argument("set-name", default="default")
+def create(debug, set_name):
+    """
+    Create folder for a parallel set
+
+    :param debug:
+    :param set_name:
+    :return:
+    """
+    setup_calls(debug)
+    try:
+        set_dir = default_parallel_sets_location / set_name
+        set_dir.mkdir()
+        rich.print(f"[green]Set {set_name} created![/green]")
+        rich.print(
+            f"Feel free to copy any context to {set_dir} for it to be run in [yellow]{set_name}[/yellow] parallel set")
+        rich.print(f"You can run this set by 'abst parallel run {set_name}'")
+    except OSError:
+        rich.print("[red]Set already exists[/red]")
+
+
 @parallel.command("remove", help="Remove Bastion from stack")
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default="default")
@@ -49,12 +73,18 @@ def remove(debug, context_name):
 @click.option("--debug", is_flag=True, default=False)
 @click.option("-y", is_flag=True, default=False, help="Automatically confirm")
 @click.option("-f", "--force", is_flag=True, default=False, help="Will force connections ignoring security policies")
-def run(debug, y, force):
+@click.argument("set_name", default=None, required=False, type=str)
+def run(debug, y, force, set_name=None):
     setup_calls(debug)
     if force:
         rich.print("[red]Running in force mode[/red][gray] this mode is less secure as it is ignoring key checking and"
                    " security policies involving known_hosts[/gray]")
-    display_scheduled()
+    if set_name:
+        set_dir = get_set_dir(set_name)
+    else:
+        set_dir = None
+
+    display_scheduled(set_dir)
     if not y:
         try:
             confirm = inquirer.confirm(
@@ -66,12 +96,24 @@ def run(debug, y, force):
         if not confirm:
             rich.print("[green]Cancelling, nothing started[/green]")
             exit(0)
-    BastionScheduler.run(force)
+    BastionScheduler.run(force, set_dir)
+
+
+def get_set_dir(set_name):
+    set_dir = default_parallel_sets_location / set_name
+    if not set_dir.exists():
+        rich.print(f"Parallel set {set_name} did not found in {set_dir}")
+        exit(1)
+    elif len(list(set_dir.iterdir())) == 0:
+        rich.print(f"[red]No contexts found in {set_dir}[/red]")
+        exit(1)
+    return set_dir
 
 
 @parallel.command("display", help="Display current Bastions is stack")
 @click.option("--debug", is_flag=True, default=False)
-def display(debug):
+@click.argument("set_name", default=None, required=False, type=str)
+def display(debug, set_name):
     setup_calls(debug)
-
-    display_scheduled()
+    set_dir = get_set_dir(set_name)
+    display_scheduled(set_dir)
