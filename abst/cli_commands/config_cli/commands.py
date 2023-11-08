@@ -94,8 +94,9 @@ def locate(debug, context_name):
     "upgrade", help="Locates Json config with credentials you enter interactively"
 )
 @click.option("--debug", is_flag=True, default=False)
+@click.option("--all", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
-def upgrade(debug, context_name):
+def upgrade(debug, context_name, all):
     setup_calls(debug)
 
     path = get_context_path(context_name)
@@ -104,4 +105,4 @@ def upgrade(debug, context_name):
         rich.print("[green]No config to upgrade[/green]")
         return
 
-    __upgrade(context_name, path)
+    __upgrade(context_name, path, all)
