@@ -91,7 +91,7 @@ def locate(debug, context_name):
 
 
 @config.command(
-    "upgrade", help="Locates Json config with credentials you enter interactively"
+    "upgrade", help="Upgrades Json config with credentials you enter interactively"
 )
 @click.option("--debug", is_flag=True, default=False)
 @click.option("--all", is_flag=True, default=False)
