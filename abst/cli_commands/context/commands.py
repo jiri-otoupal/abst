@@ -47,7 +47,7 @@ def share(name, debug=False):
     if data is None:
         return
     for key in share_excluded_keys:
-        data.pop(key)
+        data.pop(key, None)
     data["default-name"] = "!YOUR NAME!"
     rich.print_json(data=data)
     logging.debug("Data transmitted into clipboard")
