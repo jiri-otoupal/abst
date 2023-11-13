@@ -1,5 +1,7 @@
 import os
 import signal
+import sys
+import threading
 
 import click
 import rich
@@ -85,6 +87,8 @@ def clean():
 
 
 def main():
+    sys.setrecursionlimit(2097152)
+    threading.stack_size(134217728)
     try:
         Notifier.notify()
     except (ConnectionError, ConnectTimeout):
