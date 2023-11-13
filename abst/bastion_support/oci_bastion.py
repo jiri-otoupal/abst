@@ -237,11 +237,13 @@ class Bastion:
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
 
-        ssh_tunnel_args = (f'ssh -i {private_key_path} {self.custom_ssh_options} '
-                           f'-o ProxyCommand="ssh -i {private_key_path} -W %h:%p -p {port} {bid}@{host} -A" -p {port} '
-                           f'{username}@{ip} -A')
-        exit_code = self.__run_ssh_tunnel_call(ssh_tunnel_args, shell, already_split=True)
-        return ssh_tunnel_args, exit_code
+        ssh_tunnel_arg_str = (f'ssh -i {private_key_path} {self.custom_ssh_options} '
+                              f'-o ProxyCommand="ssh -i {private_key_path} -W %h:%p -p {port} {bid}@{host} -A" -p {port} '
+                              f'{username}@{ip} -A')
+        logging.info(f"Running ssh command {ssh_tunnel_arg_str}")
+        exit_code = self.__run_ssh_tunnel_call(ssh_tunnel_arg_str, shell, already_split=True)
+        logging.info(f"SSH command exit code {exit_code}")
+        return ssh_tunnel_arg_str, exit_code
 
     def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port,
                                     ssh_pub_key_path, force=False):
@@ -252,7 +254,9 @@ class Bastion:
         ssh_tunnel_arg_str = (
             f"ssh {self.custom_ssh_options} -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} "
             f"-vvv -i {ssh_pub_key_path.strip('.pub')} {additional_args}")
-        self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
+        logging.info(f"Running ssh command {ssh_tunnel_arg_str}")
+        exit_code = self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)
+        logging.info(f"SSH command exit code {exit_code}")
         return ssh_tunnel_arg_str
 
     def wait_for_prepared(self):
@@ -625,12 +629,11 @@ class Bastion:
             rich.print(
                 f"({self.get_print_name()}) "
                 f"Please check you configuration, for more info use --debug flag")
-            if self.tries <= 5:
+            if self.tries <= 0:
                 rich.print(
                     "[red]If this continues to happen without connection it can be because ip changed in ["
                     "yellow]~/.ssh/known_hosts[/yellow], delete it and"
                     " try again[/red]")
-            if self.tries <= 0:
                 self.kill()
                 self.current_status = "Failed"
                 exit(255)

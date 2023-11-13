@@ -18,7 +18,7 @@ def create():
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
-def fullauto_forward(shell, debug, context_name):
+def forward(shell, debug, context_name):
     """Creates and connects to bastion sessions
     automatically until terminated"""
 
@@ -50,7 +50,7 @@ def fullauto_forward(shell, debug, context_name):
 @click.option("--shell", is_flag=True, default=False)
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default=None, required=False)
-def fullauto_managed(shell, debug, context_name):
+def managed(shell, debug, context_name):
     """Creates and connects to bastion sessions
     automatically until terminated"""
     setup_calls(debug)
