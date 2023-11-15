@@ -1,9 +1,13 @@
+import logging
 import os
+import re
+from subprocess import call
 
 import click
 import rich
+from InquirerPy import inquirer
 
-from abst.utils.misc_funcs import setup_calls
+from abst.utils.misc_funcs import setup_calls, fetch_pods
 
 
 @click.group("cp", help="Copy commands for special usage")
@@ -33,10 +37,68 @@ def cp_secret(
     setup_calls(debug)
     try:
         rich.print("Trying Copy secret")
+        kubectl_copy_secret_cmd = f"kubectl get secret {secret_name} --namespace={source_namespace} -o yaml | sed " \
+                                  f"'s/namespace: .*/namespace: {target_namespace}/' | kubectl apply -f -"
+        logging.info(f"Executing {kubectl_copy_secret_cmd}")
+
         os.system(
-            f"kubectl get secret {secret_name} --namespace={source_namespace} -o yaml | sed "
-            f"'s/namespace: .*/namespace: {target_namespace}/' | kubectl apply -f -"
+            kubectl_copy_secret_cmd
         )
     except FileNotFoundError:
         rich.print("[red]kubectl not found on this machine[/red]")
         return
+
+
+@cp.command("file", help="Will copy file into pod with containing string name")
+@click.argument("pod_name")
+@click.argument("local_path")
+@click.argument("dest_path")
+@click.option("--debug", is_flag=True, default=False)
+def cp_to_pod(pod_name, local_path, dest_path, debug):
+    setup_calls(debug)
+
+    try:
+        pod_lines = fetch_pods()
+    except FileNotFoundError:
+        rich.print("[red]kubectl not found on this machine[/red]")
+        return
+
+    found = list(filter(lambda pod_line: pod_name in pod_line, pod_lines))
+
+    if len(found) > 1:
+        data = re.sub(
+            " +",
+            " ",
+            inquirer.select("Found more pods, choose one:", list(found)).execute(),
+        ).split(" ")
+        pod_name_precise = data[1]
+    elif len(found) == 1:
+        tmp = found.pop()
+        data = re.sub(" +", " ", tmp).split(" ")
+        pod_name_precise = data[1]
+    else:
+        rich.print(f"[red]No pods with name {pod_name} found[/red]")
+        return
+
+    rich.print(
+        f"[green]Copying file {local_path} to {pod_name_precise}:{dest_path} in namespace: {data[0]}[/green]"
+    )
+    kubectl_copy_cmd = f"kubectl cp {local_path} {data[0]}/{pod_name_precise}:{dest_path}"
+    logging.info(f"Executing {kubectl_copy_cmd}")
+
+    exit_code = call(
+        kubectl_copy_cmd.split(" ")
+    )
+
+    if exit_code == 255:
+        rich.print("[red]Failed to copy using conventional kubectl cp, probably missing [yellow]tar[/yellow] "
+                   "executable[/red]")
+        rich.print("[yellow]Trying alternative copy method...[/yellow]")
+    kubectl_alt_copy_cmd = (f"cat {local_path} |"
+                            f" kubectl exec -i {pod_name_precise} -n {data[0]} -- tee {dest_path} > /dev/null")
+    logging.info(f"Executing {kubectl_alt_copy_cmd}")
+    exit_code = os.system(kubectl_alt_copy_cmd)
+    if exit_code == 0:
+        rich.print("[green]File successfully copied![/green]")
+    else:
+        rich.print("[red]Failed.[/red]")

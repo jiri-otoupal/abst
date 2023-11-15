@@ -1,5 +1,6 @@
 import json
 import logging
+import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -52,3 +53,13 @@ def get_context_data(name) -> Optional[dict]:
     else:
         rich.print("[red]Context does not exists[/red]")
         return None
+
+
+def fetch_pods():
+    rich.print("Fetching pods")
+    pod_lines = (
+        subprocess.check_output(f"kubectl get pods -A".split(" "))
+        .decode()
+        .split("\n")
+    )
+    return pod_lines

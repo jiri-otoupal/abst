@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import subprocess
@@ -6,7 +7,7 @@ import click
 import rich
 from InquirerPy import inquirer
 
-from abst.utils.misc_funcs import setup_calls
+from abst.utils.misc_funcs import setup_calls, fetch_pods
 
 
 @click.command("ssh", help="Will SSH into pod with containing string name")
@@ -16,12 +17,7 @@ def ssh_pod(pod_name, debug):
     setup_calls(debug)
 
     try:
-        rich.print("Fetching pods")
-        pod_lines = (
-            subprocess.check_output(f"kubectl get pods -A".split(" "))
-            .decode()
-            .split("\n")
-        )
+        pod_lines = fetch_pods()
     except FileNotFoundError:
         rich.print("[red]kubectl not found on this machine[/red]")
         return
@@ -46,8 +42,10 @@ def ssh_pod(pod_name, debug):
     rich.print(
         f"[green]Connecting to {pod_name_precise} in namespace: {data[0]}[/green]"
     )
+    kubectl_ssh_cmd = f"kubectl exec -n {data[0]} --stdin --tty {pod_name_precise} -- /bin/bash"
+    logging.info(f"Executing {kubectl_ssh_cmd}")
     os.system(
-        f"kubectl exec -n {data[0]} --stdin --tty {pod_name_precise} -- /bin/bash"
+        kubectl_ssh_cmd
     )
 
 
@@ -88,6 +86,8 @@ def log_pod(pod_name, debug):
     rich.print(
         f"[green]Getting logs from {pod_name_precise} in namespace: {data[0]}[/green]"
     )
+    kubectl_log_cmd = f"kubectl -n {data[0]} logs {pod_name_precise}"
+    logging.info(f"Executing {kubectl_log_cmd}")
     os.system(
-        f"kubectl -n {data[0]} logs {pod_name_precise}"
+        kubectl_log_cmd
     )
