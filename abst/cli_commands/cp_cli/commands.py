@@ -1,13 +1,14 @@
 import logging
 import os
 import re
+from pathlib import Path
 from subprocess import call
 
 import click
 import rich
 from InquirerPy import inquirer
 
-from abst.utils.misc_funcs import setup_calls, fetch_pods
+from abst.utils.misc_funcs import setup_calls, fetch_pods, recursive_copy
 
 
 @click.group("cp", help="Copy commands for special usage")
@@ -50,11 +51,12 @@ def cp_secret(
 
 
 @cp.command("file", help="Will copy file into pod with containing string name")
-@click.argument("pod_name")
-@click.argument("local_path")
-@click.argument("dest_path")
+@click.argument("pod_name", type=str)
+@click.argument("local_path", type=str)
+@click.argument("dest_path", type=str)
+@click.option("--exclude", default="", type=str)
 @click.option("--debug", is_flag=True, default=False)
-def cp_to_pod(pod_name, local_path, dest_path, debug):
+def cp_to_pod(pod_name, local_path, dest_path, exclude, debug):
     setup_calls(debug)
 
     try:
@@ -94,11 +96,11 @@ def cp_to_pod(pod_name, local_path, dest_path, debug):
         rich.print("[red]Failed to copy using conventional kubectl cp, probably missing [yellow]tar[/yellow] "
                    "executable[/red]")
         rich.print("[yellow]Trying alternative copy method...[/yellow]")
-    kubectl_alt_copy_cmd = (f"cat {local_path} |"
-                            f" kubectl exec -i {pod_name_precise} -n {data[0]} -- tee {dest_path} > /dev/null")
-    logging.info(f"Executing {kubectl_alt_copy_cmd}")
-    exit_code = os.system(kubectl_alt_copy_cmd)
-    if exit_code == 0:
-        rich.print("[green]File successfully copied![/green]")
     else:
-        rich.print("[red]Failed.[/red]")
+        return
+    local_path_obj = Path(local_path).expanduser().resolve()
+    thread_list = []
+    recursive_copy(local_path_obj, dest_path, exclude, data, pod_name_precise, thread_list)
+
+    for t in thread_list:
+        t.join()
