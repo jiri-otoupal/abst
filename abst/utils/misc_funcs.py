@@ -70,6 +70,9 @@ def fetch_pods():
 
 def recursive_copy(dir_to_iter: Path, dest_path: str, exclude: str, data: list, pod_name_precise: str,
                    thread_list: list):
+    if dir_to_iter.is_dir():
+        create_folder_kubectl(data, dest_path, pod_name_precise)
+
     for file in dir_to_iter.iterdir():
         final_dest_path = make_final_dest_path(dest_path, file)
         if file.name == exclude:
