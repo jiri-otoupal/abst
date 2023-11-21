@@ -8,7 +8,7 @@ import click
 import rich
 from InquirerPy import inquirer
 
-from abst.utils.misc_funcs import setup_calls, fetch_pods, recursive_copy
+from abst.utils.misc_funcs import setup_calls, fetch_pods, recursive_copy, copy_file_alt_kubectl
 
 
 @click.group("cp", help="Copy commands for special usage")
@@ -100,6 +100,11 @@ def cp_to_pod(pod_name, local_path, dest_path, exclude, debug):
         return
     local_path_obj = Path(local_path).expanduser().resolve()
     thread_list = []
+
+    if not local_path_obj.is_dir():
+        copy_file_alt_kubectl(data, dest_path, local_path, pod_name_precise)
+        return
+
     recursive_copy(local_path_obj, dest_path, exclude, data, pod_name_precise, thread_list)
 
     for t in thread_list:
