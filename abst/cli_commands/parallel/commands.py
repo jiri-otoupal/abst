@@ -60,7 +60,18 @@ def create(debug, set_name):
         rich.print("[red]Set already exists[/red]")
 
 
-@parallel.command("remove", help="Remove Bastion from stack")
+@parallel.command("list", help="List folder of a parallel set")
+@click.option("--debug", is_flag=True, default=False)
+def _list(debug):
+    setup_calls(debug)
+    rich.print("Sets in parallel folder")
+    for _set in default_parallel_sets_location.iterdir():
+        if _set.name.startswith("."):
+            continue
+        rich.print(f"   {_set.name} Contexts: {[con.name.replace('.json', '') for con in _set.iterdir()]}")
+
+
+@parallel.command("remove", help="Remove Bastion from stack (Can not remove sets)")
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default="default")
 def remove(debug, context_name):
