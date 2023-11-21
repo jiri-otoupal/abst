@@ -28,6 +28,7 @@ class Bastion:
     force_ssh_options: str = "-o StrictHostKeyChecking=no -o ServerAliveInterval=20 -o UserKnownHostsFile=/dev/null"
 
     def __init__(self, context_name=None, region=None, direct_json_path=None):
+        self.bid: Optional[str] = None
         self.context_name = context_name
         self.region = region
         self.shell: bool = False
@@ -121,6 +122,7 @@ class Bastion:
             return
         else:
             self.current_status = "creating bastion session succeeded"
+            self.bid = bid
             rich.print(
                 f"Created Session with id '{bid}' on Bastion {self.get_print_name()} "
                 f"'{response['bastion_name']}'")
@@ -202,6 +204,7 @@ class Bastion:
             return
         else:
             self.current_status = "creating bastion session succeeded"
+            self.bid = bid
             rich.print(f"Created Session for {self.get_print_name()} with id '{bid}'")
 
         self.current_status = "waiting for session init"

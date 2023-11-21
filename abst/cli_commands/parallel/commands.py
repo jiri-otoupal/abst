@@ -26,7 +26,7 @@ def add(debug, context_name):
     """
     Add Bastions to stack
 
-    use default for adding default cluster ! this is reserved name !
+    use default for adding default cluster ! this is reserved name!
     :param debug:
     :param context_name:
     :return:

@@ -18,6 +18,7 @@ class BastionScheduler:
     __dry_stack = set()
     __live_stack = set()
     stopped = False
+    session_list = []
 
     @classmethod
     def load_stack(cls):
@@ -124,6 +125,8 @@ class BastionScheduler:
                     return
                 bastion = Bastion(None if context_name == "default" else context_name, region=
                 Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None))
+                Bastion.session_list.append(bastion)
+                cls.session_list.append(bastion)
                 cls.__live_stack.add(bastion)
                 t = Thread(name=context_name, target=cls._run_indefinitely,
                            args=[bastion.create_forward_loop, force], daemon=True)
@@ -137,12 +140,15 @@ class BastionScheduler:
                 context_name = context_path.name[:-5]
                 bastion = Bastion(None if context_name == "default" else context_name, region=
                 Bastion.load_json(context_path).get("region", None), direct_json_path=context_path)
+                Bastion.session_list.append(bastion)
+                cls.session_list.append(bastion)
                 cls.__live_stack.add(bastion)
                 t = Thread(name=context_name, target=cls._run_indefinitely,
                            args=[bastion.create_forward_loop, force], daemon=True)
                 thread_list.append(t)
                 t.start()
                 rich.print(f"Started {context_name}")
+
 
         cls.__display_loop()
 
@@ -161,13 +167,13 @@ class BastionScheduler:
     def kill_all(cls, a=None, b=None, c=None):
         # This should be only executed in running state
         cls.stopped = True
-        blist_copy = list(Bastion.session_list)
+        blist_copy = list(cls.session_list)
         for i, sess in enumerate(blist_copy):
             try:
-                print(f"Killing {sess}")
+                print(f"Killing {sess.bid}")
                 Bastion.current_status = "deleting"
-
-                Bastion.delete_bastion_session(sess, Bastion.session_desc.pop(sess))
+                sess.kill()
+                Bastion.delete_bastion_session(sess.bid, sess.region)
             except Exception:
                 print(f"Looks like Bastion is already deleted {sess}")
             finally:
