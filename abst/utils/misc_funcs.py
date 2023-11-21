@@ -112,7 +112,9 @@ def copy_file_alt_kubectl(data: list, dest_path: str, local_path: Path, pod_name
     logging.info(f"Executing {kubectl_alt_copy_cmd}")
     exit_code = subprocess.call(kubectl_alt_copy_cmd, shell=True)
     rich.print(
-        f"   [green]{local_path if type(local_path) == str else local_path.name} ({local_path.stat().st_size / 1000} kB) successfully copied![/green]")
+        f"   [green]{local_path if type(local_path) == str else local_path.name}"
+        f" ({'?' if type(local_path) == str else local_path.stat().st_size / 1000} kB)"
+        f" successfully copied![/green]")
     if exit_code != 0 and tries < 0:
         rich.print("[red]Failed to copy.[/red]")
         exit(1)
