@@ -68,7 +68,11 @@ def _list(debug):
     for _set in default_parallel_sets_location.iterdir():
         if _set.name.startswith("."):
             continue
-        rich.print(f"   {_set.name} Contexts: {[con.name.replace('.json', '') for con in _set.iterdir()]}")
+        rich.print(f"   {_set.name}")
+        for ctx in _set.iterdir():
+            if ctx.name.startswith("."):
+                continue
+            rich.print(f"       {ctx.name.replace('.json', '')}")
 
 
 @parallel.command("remove", help="Remove Bastion from stack (Can not remove sets)")
