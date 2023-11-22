@@ -130,5 +130,8 @@ def get_set_dir(set_name):
 @click.argument("set_name", default=None, required=False, type=str)
 def display(debug, set_name):
     setup_calls(debug)
-    set_dir = get_set_dir(set_name)
+    if set_name:
+        set_dir = get_set_dir(set_name)
+    else:
+        set_dir = None
     display_scheduled(set_dir)
