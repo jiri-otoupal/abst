@@ -99,7 +99,7 @@ class BastionScheduler:
         while True:
             clear()
             cls.__display(console)
-            sleep(3)
+            sleep(1.5)
 
     @classmethod
     def _run_indefinitely(cls, func, force: bool = False):
@@ -109,7 +109,7 @@ class BastionScheduler:
             try:
                 func(force=force)
             finally:
-                sleep(1)
+                sleep(0.3)
 
     @classmethod
     @load_stack_decorator

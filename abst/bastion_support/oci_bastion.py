@@ -265,7 +265,7 @@ class Bastion:
     def wait_for_prepared(self):
         print(f"Waiting for Bastion {self.get_print_name()} to initialize")
         while self.get_bastion_state()["lifecycle_state"] != "ACTIVE":
-            sleep(1)
+            sleep(0.5)
 
     @classmethod
     def parse_response(cls, res):
