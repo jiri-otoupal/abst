@@ -390,6 +390,11 @@ class Bastion:
 
     @classmethod
     def load_json(cls, path=default_creds_path) -> dict:
+        if not default_conf_path.exists() and path == default_conf_path:
+            default_conf_path.parent.mkdir(exist_ok=True)
+            with open(str(path), "w") as f:
+                json.dump({"last-check": datetime.datetime.timestamp(datetime.datetime.now())}, f, indent=3)
+
         with open(str(path), "r") as f:
             creds = json.load(f)
             if "delete_this" in creds.keys():
