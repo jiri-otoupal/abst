@@ -5,8 +5,10 @@ from time import sleep
 from typing import Optional
 
 import rich
-from click import clear
 from rich.align import Align
+from rich.layout import Layout
+from rich.live import Live
+from rich.rule import Rule
 
 from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_stack_location, default_stack_contents, \
@@ -69,14 +71,14 @@ class BastionScheduler:
             rich.print(f"[red]No Bastion by name {name} in stack[/red]")
 
     @classmethod
-    def __display(cls, console):
-        console.clear()
+    def __display(cls, live):
         from rich.table import Table
         table = Table(title="Bastion Sessions", highlight=True)
         table.add_column("Name", justify="left", style="cyan", no_wrap=True)
         table.add_column("Local Port", style="magenta", no_wrap=True)
         table.add_column("Active", justify="right", style="green", no_wrap=True)
         table.add_column("Status", justify="right", style="green", no_wrap=True)
+
         for bastion in cls.__live_stack:
             conf = bastion.load_self_creds()
             active = bastion.connected and bastion.active_tunnel.poll() is None
@@ -87,19 +89,24 @@ class BastionScheduler:
                               bastion.current_status)
             except:
                 pass
+
         centered_table = Align.center(table)
-        console.print(centered_table)
+        layout = Layout()
+        layout.split(
+            Layout(centered_table),
+            Layout(Rule("Logs"))
+        )
+        live.update(layout)
+
 
     @classmethod
     def __display_loop(cls):
         from rich.console import Console
         console = Console()
-        signal.signal(signal.SIGINT, BastionScheduler.kill_all)
-        signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
-        while True:
-            clear()
-            cls.__display(console)
-            sleep(1.5)
+        with Live(screen=True, console=console, auto_refresh=True) as live:
+            while True:
+                cls.__display(live)
+                sleep(0.5)
 
     @classmethod
     def _run_indefinitely(cls, func, force: bool = False):
@@ -149,7 +156,6 @@ class BastionScheduler:
                 t.start()
                 rich.print(f"Started {context_name}")
 
-
         cls.__display_loop()
 
     @classmethod
@@ -172,6 +178,7 @@ class BastionScheduler:
             try:
                 print(f"Killing {sess.bid}")
                 Bastion.current_status = "deleting"
+                sess.current_status = "deleting"
                 sess.kill()
                 Bastion.delete_bastion_session(sess.bid, sess.region)
             except Exception:

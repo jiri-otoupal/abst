@@ -66,6 +66,7 @@ class Bastion:
     def kill(self):
         print(f"Killing Bastion {self.get_print_name()} SSH Tunnel")
         try:
+            self.current_status = "killing"
             Bastion.stopped = True
             self.active_tunnel.send_signal(signal.SIGTERM)
             sess_id = self.response["id"]
