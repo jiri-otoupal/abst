@@ -110,7 +110,7 @@ def main():
 def print_changelog(_config):
     rich.print(f"[yellow]Version {__version__} {__version_name__}[/yellow]")
     rich.print("[red]Changelog[/red]")
-    rich.print(__change_log__)
+    rich.print(f"[yellow]{__change_log__}[/yellow]")
 
 
 signal.signal(signal.SIGINT, BastionScheduler.kill_all)
