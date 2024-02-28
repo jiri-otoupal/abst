@@ -47,10 +47,10 @@ def print_eligible(searched: str):
 
 
 def get_context_data(name) -> Optional[dict]:
-    if name in [file.name.replace(".json", "") for file in
-                Path(default_contexts_location).iterdir()]:
-        rich.print("[bold]Context config contents:[/bold]\n")
-        with open(Path(default_contexts_location) / (name + ".json"), "r") as f:
+    normalized_name = name if ".json" in name else name + ".json"
+    if normalized_name in [file.name for file in
+                           Path(default_contexts_location).iterdir()]:
+        with open(Path(default_contexts_location) / normalized_name, "r") as f:
             data = json.load(f)
             return data
     else:
@@ -63,13 +63,14 @@ def get_context_set_data(name) -> Optional[dict]:
     if len(path) != 2:
         rich.print(f"[red]Invalid path '{name}'[/red]")
 
-    if path[0] in [file.name for file in
-                   Path(default_parallel_sets_location).iterdir()]:
-        if path[1] in [file.name.replace(".json", "") for file in
-                       Path(default_parallel_sets_location / path[0]).iterdir()]:
-            rich.print(f"[bold]Context '{name}' config contents:[/bold]\n")
+    set_dir_name = path[0]
+    if set_dir_name in [file.name for file in
+                        Path(default_parallel_sets_location).iterdir()]:
+        normalized_name = path[1] if ".json" in path[1] else path[1] + ".json"
+        if normalized_name in [file.name for file in
+                               Path(default_parallel_sets_location / set_dir_name).iterdir()]:
             with open(
-                    Path(default_parallel_sets_location) / path[0] / (path[1] + ".json"),
+                    Path(default_parallel_sets_location) / set_dir_name / normalized_name,
                     "r") as f:
                 data = json.load(f)
                 return data

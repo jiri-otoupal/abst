@@ -134,7 +134,8 @@ class BastionScheduler:
                 t.start()
                 rich.print(f"Started {context_name}")
         else:
-            for context_path in filter(lambda p: not str(p.name).startswith("."), set_dir.iterdir()):
+            for context_path in filter(lambda p: not str(p.name).startswith(".") and str(p.name).endswith(".json"),
+                                       set_dir.iterdir()):
                 if cls.stopped:
                     return
                 context_name = context_path.name[:-5]
@@ -148,7 +149,6 @@ class BastionScheduler:
                 thread_list.append(t)
                 t.start()
                 rich.print(f"Started {context_name}")
-
 
         cls.__display_loop()
 

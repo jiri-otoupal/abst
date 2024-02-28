@@ -10,7 +10,7 @@ __description__ = (
     "CLI Command making OCI Bastion and kubernetes usage simple and fast"
 )
 
-__version__ = "2.3.22"
+__version__ = "2.3.23"
 __author__ = "Jiri Otoupal"
 __author_email__ = "jiri-otoupal@ips-database.eu"
 __license__ = "MIT"
@@ -23,4 +23,6 @@ __change_log__ = """
 * Sharing and Pasting now works for sets too, you can use set_name/context for both\n
 * When pasting, it will ask if you want to change IP and for bastion name renaming\n
 * Removed unused packages\n
+* Fixed filename .json search\n
+* Abst is filtering not json files from context search\n
 """

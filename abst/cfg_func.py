@@ -29,7 +29,8 @@ def __upgrade(context_name, path, _all):
 
     for file in default_contexts_location.iterdir():
         append_minimizable(file, minimize_files)
-    for set_folder in filter(lambda p: not str(p.name).startswith("."), default_parallel_sets_location.iterdir()):
+    for set_folder in filter(lambda p: not str(p.name).startswith(".") and str(p.name).endswith(".json"),
+                             default_parallel_sets_location.iterdir()):
         for file in set_folder.iterdir():
             if file.name.startswith(".") or not append_minimizable(file, minimize_files):
                 continue

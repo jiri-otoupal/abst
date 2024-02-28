@@ -66,7 +66,7 @@ def _list(debug):
     setup_calls(debug)
     rich.print("Sets in parallel folder")
     for _set in default_parallel_sets_location.iterdir():
-        if _set.name.startswith("."):
+        if _set.name.startswith(".") and not _set.name.endswith(".json"):
             continue
         rich.print(f"   {_set.name}")
         for ctx in _set.iterdir():

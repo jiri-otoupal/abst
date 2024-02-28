@@ -39,7 +39,7 @@ def display_scheduled(set_dir: Optional[Path] = None):
     table.add_column("Active", justify="right", style="green", no_wrap=True)
     table.add_column("Status", justify="right", style="green", no_wrap=True)
     if set_dir:
-        for context_path in filter(lambda p: not str(p.name).startswith("."),
+        for context_path in filter(lambda p: not str(p.name).startswith(".") and str(p.name).endswith(".json"),
                                    set_dir.iterdir()):
             conf = Bastion.load_json(context_path)
             context_name = context_path.name[:-5]

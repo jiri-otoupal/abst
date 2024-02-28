@@ -47,10 +47,10 @@ def display(name, debug=False):
 @context.command(
     help="Will print context without local paths and put it in clipboard for sharing")
 @click.option("--debug", is_flag=True, default=False)
+@click.option("--raw", is_flag=True, default=False)
 @click.argument("name")
-def share(name: str, debug=False):
+def share(name: str, debug=False, raw=False):
     setup_calls(debug)
-    rich.print("Copied context into clipboard")
 
     if "/" in name:
         data = get_context_set_data(name)
@@ -58,12 +58,17 @@ def share(name: str, debug=False):
         data = get_context_data(name)
     if data is None:
         return
+
     for key in share_excluded_keys:
         data.pop(key, None)
     data["default-name"] = "!YOUR NAME!"
+
+    if not raw:
+        rich.print(f"[bold]Context '{name}' config contents:[/bold]\n")
+        logging.debug("Data transmitted into clipboard")
+        pyperclip.copy(str(data))
+        rich.print("Copied context into clipboard")
     rich.print_json(data=data)
-    logging.debug("Data transmitted into clipboard")
-    pyperclip.copy(str(data))
 
 
 @context.command(help="Will paste context from clipboard into provided context name")
