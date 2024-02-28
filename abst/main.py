@@ -5,10 +5,10 @@ import threading
 
 import click
 import rich
+import semantic_version
 from InquirerPy import inquirer
 from requests import ConnectTimeout
 
-from packaging import version
 from abst.__version__ import __version_name__, __version__, __change_log__
 from abst.bastion_support.bastion_scheduler import BastionScheduler
 from abst.bastion_support.oci_bastion import Bastion
@@ -27,16 +27,7 @@ from abst.utils.misc_funcs import setup_calls
 @click.group()
 @click.version_option(f"{__version__} {__version_name__}")
 def cli():
-    Bastion.create_default_locations()
-    _config = Bastion.load_config()
-    if _config.get("changelog-version", None) is None:
-        _config["changelog-version"] = __version__
-    elif version.parse(_config["changelog-version"]) > version.parse(
-            __version__) and __change_log__:
-        _config["changelog-version"] = __version__
-        rich.print(f"[yellow]Version {__version__} {__version_name__}[/yellow]")
-        rich.print("[red]Changelog[/red]")
-        rich.print(__change_log__)
+    pass
 
 
 @cli.command(
@@ -99,6 +90,18 @@ def clean():
 def main():
     sys.setrecursionlimit(2097152)
     threading.stack_size(134217728)
+
+    _config = Bastion.load_config()
+    if _config.get("changelog-version", None) is None:
+        _config["changelog-version"] = __version__
+    elif semantic_version.Version(
+            _config["changelog-version"]) > semantic_version.Version(
+        __version__) and __change_log__:
+        _config["changelog-version"] = __version__
+        rich.print(f"[yellow]Version {__version__} {__version_name__}[/yellow]")
+        rich.print("[red]Changelog[/red]")
+        rich.print(__change_log__)
+
     try:
         Notifier.notify()
     except (ConnectionError, ConnectTimeout):

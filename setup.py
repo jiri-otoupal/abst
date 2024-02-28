@@ -28,7 +28,7 @@ setup(
     python_requires=">=3.7,<4",
     install_requires=["click", "rich", "inquirerpy", "oci", "lastversion",
                       "semantic_version", "pyperclip",
-                      "bext", "packaging"],
+                      "bext"],
     extras_require={
         "dev": ["black==22.*"],
     },
@@ -45,6 +45,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     keywords="Auto OCI Bastion",
 )
