@@ -10,7 +10,7 @@ __description__ = (
     "CLI Command making OCI Bastion and kubernetes usage simple and fast"
 )
 
-__version__ = "2.3.17"
+__version__ = "2.3.18"
 __author__ = "Jiri Otoupal"
 __author_email__ = "jiri-otoupal@ips-database.eu"
 __license__ = "MIT"
@@ -23,4 +23,5 @@ Added alias to context, now you can use 'ctx'\n
 Sharing and Pasting now works for sets too, you can use set_name/context for both
 
 When pasting, it will ask if you want to change IP and for bastion name renaming
+Removed unused packages
 """

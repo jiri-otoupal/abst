@@ -27,7 +27,7 @@ setup(
     include_package_data=True,
     python_requires=">=3.7,<4",
     install_requires=["click", "rich", "inquirerpy", "oci", "lastversion",
-                      "semantic_version", "eventlet", "pyperclip",
+                      "semantic_version", "pyperclip",
                       "bext", "packaging"],
     extras_require={
         "dev": ["black==22.*"],
