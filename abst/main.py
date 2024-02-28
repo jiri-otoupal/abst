@@ -94,13 +94,11 @@ def main():
     _config = Bastion.load_config()
     if _config.get("changelog-version", None) is None:
         _config["changelog-version"] = __version__
+        print_changelog(_config)
     elif semantic_version.Version(
             _config["changelog-version"]) > semantic_version.Version(
         __version__) and __change_log__:
-        _config["changelog-version"] = __version__
-        rich.print(f"[yellow]Version {__version__} {__version_name__}[/yellow]")
-        rich.print("[red]Changelog[/red]")
-        rich.print(__change_log__)
+        print_changelog(_config)
 
     try:
         Notifier.notify()
@@ -108,6 +106,13 @@ def main():
         return False
     Bastion.create_default_locations()
     cli()
+
+
+def print_changelog(_config):
+    _config["changelog-version"] = __version__
+    rich.print(f"[yellow]Version {__version__} {__version_name__}[/yellow]")
+    rich.print("[red]Changelog[/red]")
+    rich.print(__change_log__)
 
 
 signal.signal(signal.SIGINT, BastionScheduler.kill_all)
