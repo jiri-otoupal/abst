@@ -8,11 +8,12 @@ import rich
 from InquirerPy import inquirer
 from requests import ConnectTimeout
 
-from abst.__version__ import __version_name__, __version__
+from packaging import version
+from abst.__version__ import __version_name__, __version__, __change_log__
 from abst.bastion_support.bastion_scheduler import BastionScheduler
 from abst.bastion_support.oci_bastion import Bastion
 from abst.cli_commands.config_cli.commands import config
-from abst.cli_commands.context.commands import context
+from abst.cli_commands.context.commands import context, ctx
 from abst.cli_commands.cp_cli.commands import cp
 from abst.cli_commands.create_cli.commands import create
 from abst.cli_commands.helm_cli.commands import helm
@@ -26,7 +27,16 @@ from abst.utils.misc_funcs import setup_calls
 @click.group()
 @click.version_option(f"{__version__} {__version_name__}")
 def cli():
-    pass
+    Bastion.create_default_locations()
+    _config = Bastion.load_config()
+    if _config.get("changelog-version", None) is None:
+        _config["changelog-version"] = __version__
+    elif version.parse(_config["changelog-version"]) > version.parse(
+            __version__) and __change_log__:
+        _config["changelog-version"] = __version__
+        rich.print(f"[yellow]Version {__version__} {__version_name__}[/yellow]")
+        rich.print("[red]Changelog[/red]")
+        rich.print(__change_log__)
 
 
 @cli.command(
@@ -104,6 +114,7 @@ signal.signal(signal.SIGABRT, BastionScheduler.kill_all)
 cli.add_command(parallel)
 cli.add_command(config)
 cli.add_command(context)
+cli.add_command(ctx)
 cli.add_command(helm)
 cli.add_command(cp)
 cli.add_command(ssh_pod)

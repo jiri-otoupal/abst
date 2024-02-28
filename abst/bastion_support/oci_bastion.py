@@ -244,7 +244,8 @@ class Bastion:
                               f'-o ProxyCommand="ssh -i {private_key_path} -W %h:%p -p {port} {bid}@{host} -A" -p {port} '
                               f'{username}@{ip} -A')
         logging.info(f"Running ssh command {ssh_tunnel_arg_str}")
-        exit_code = self.__run_ssh_tunnel_call(ssh_tunnel_arg_str, shell, already_split=True)
+        exit_code = self.__run_ssh_tunnel_call(ssh_tunnel_arg_str, shell,
+                                               already_split=True)
         logging.info(f"SSH command exit code {exit_code}")
         return ssh_tunnel_arg_str, exit_code
 
@@ -310,7 +311,8 @@ class Bastion:
             rich.print("If you want to add region, run abst config upgrade <ctx-name>")
 
         ssh_pub_path = str(Path(creds.get("ssh-pub-path",
-                                          cfg.get("ssh-pub-path", "No Public key supplied"))).expanduser().resolve())
+                                          cfg.get("ssh-pub-path",
+                                                  "No Public key supplied"))).expanduser().resolve())
 
         if ssh_pub_path == "No Public key supplied":
             rich.print(
@@ -393,7 +395,9 @@ class Bastion:
         if not default_conf_path.exists() and path == default_conf_path:
             default_conf_path.parent.mkdir(exist_ok=True)
             with open(str(path), "w") as f:
-                json.dump({"last-check": datetime.datetime.timestamp(datetime.datetime.now())}, f, indent=3)
+                json.dump(
+                    {"last-check": datetime.datetime.timestamp(datetime.datetime.now())},
+                    f, indent=3)
 
         with open(str(path), "r") as f:
             creds = json.load(f)
@@ -426,7 +430,14 @@ class Bastion:
 
     @classmethod
     def write_creds_json(cls, td: dict, path: Path):
-        with open(str(path), "w") as f:
+
+        if not path.name.endswith(".json"):
+            # Construct new filename with .json extension
+            tmp_path = path.with_suffix(".json")
+        else:
+            tmp_path = path
+
+        with open(str(tmp_path), "w") as f:
             json.dump(td, f, indent=4)
         return path
 

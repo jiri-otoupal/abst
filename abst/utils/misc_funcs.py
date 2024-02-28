@@ -11,7 +11,7 @@ import rich
 from rich.logging import RichHandler
 
 from abst.bastion_support.oci_bastion import Bastion
-from abst.config import default_contexts_location
+from abst.config import default_contexts_location, default_parallel_sets_location
 
 
 def setup_calls(debug):
@@ -58,6 +58,29 @@ def get_context_data(name) -> Optional[dict]:
         return None
 
 
+def get_context_set_data(name) -> Optional[dict]:
+    path = name.split("/")
+    if len(path) != 2:
+        rich.print(f"[red]Invalid path '{name}'[/red]")
+
+    if path[0] in [file.name for file in
+                   Path(default_parallel_sets_location).iterdir()]:
+        if path[1] in [file.name.replace(".json", "") for file in
+                       Path(default_parallel_sets_location / path[0]).iterdir()]:
+            rich.print(f"[bold]Context '{name}' config contents:[/bold]\n")
+            with open(
+                    Path(default_parallel_sets_location) / path[0] / (path[1] + ".json"),
+                    "r") as f:
+                data = json.load(f)
+                return data
+        else:
+            rich.print("[red]Context does not exists[/red]")
+            return None
+    else:
+        rich.print("[red]Set does not exists[/red]")
+        return None
+
+
 def fetch_pods():
     rich.print("Fetching pods")
     pod_lines = (
@@ -68,7 +91,8 @@ def fetch_pods():
     return pod_lines
 
 
-def recursive_copy(dir_to_iter: Path, dest_path: str, exclude: str, data: list, pod_name_precise: str,
+def recursive_copy(dir_to_iter: Path, dest_path: str, exclude: str, data: list,
+                   pod_name_precise: str,
                    thread_list: list):
     if dir_to_iter.is_dir():
         create_folder_kubectl(data, dest_path, pod_name_precise)
@@ -83,7 +107,8 @@ def recursive_copy(dir_to_iter: Path, dest_path: str, exclude: str, data: list, 
 
             create_folder_kubectl(data, final_dest_path, pod_name_precise)
             t = Thread(name=f"recursive_copy_{file}", target=recursive_copy,
-                       args=[file, dest_path, exclude, data, pod_name_precise, thread_list])
+                       args=[file, dest_path, exclude, data, pod_name_precise,
+                             thread_list])
             t.start()
             thread_list.append(t)
         else:
@@ -106,7 +131,8 @@ def create_folder_kubectl(data: list, dest_path: str, pod_name_precise: str):
     os.system(kubectl_create_dir_cmd)
 
 
-def copy_file_alt_kubectl(data: list, dest_path: str, local_path: Path, pod_name_precise: str, tries=4):
+def copy_file_alt_kubectl(data: list, dest_path: str, local_path: Path,
+                          pod_name_precise: str, tries=4):
     kubectl_alt_copy_cmd = (f"cat \"{local_path}\" |"
                             f" kubectl exec -i {pod_name_precise} -n {data[0]} -- tee \"{dest_path}\" > /dev/null")
     logging.info(f"Executing {kubectl_alt_copy_cmd}")

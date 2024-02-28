@@ -1,19 +1,26 @@
 import json
 import logging
+from json import JSONDecodeError
 from pathlib import Path
 
 import click
 import pyperclip
 import rich
+from InquirerPy import inquirer
 
 from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_contexts_location, share_excluded_keys
 from abst.tools import get_context_path
-from abst.utils.misc_funcs import get_context_data, setup_calls
+from abst.utils.misc_funcs import get_context_data, setup_calls, get_context_set_data
 
 
 @click.group(help="Contexts commands")
 def context():
+    pass
+
+
+@click.group(help="Context commands alias")
+def ctx():
     pass
 
 
@@ -37,13 +44,18 @@ def display(name, debug=False):
     rich.print_json(data=data)
 
 
-@context.command(help="Will print context without local paths and put it in clipboard for sharing")
+@context.command(
+    help="Will print context without local paths and put it in clipboard for sharing")
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("name")
-def share(name, debug=False):
+def share(name: str, debug=False):
     setup_calls(debug)
     rich.print("Copied context into clipboard")
-    data = get_context_data(name)
+
+    if "/" in name:
+        data = get_context_set_data(name)
+    else:
+        data = get_context_data(name)
     if data is None:
         return
     for key in share_excluded_keys:
@@ -64,5 +76,31 @@ def paste(name, debug=False):
     path = get_context_path(name)
     if data is None:
         return
-    Bastion.write_creds_json(json.loads(data.replace("'", "\"")), path)
-    rich.print(f"Wrote config into ~/.abst/contexts/{name}.json")
+
+    try:
+        data_loaded = json.loads(data.replace("'", "\""))
+    except JSONDecodeError:
+        rich.print("[red]Invalid data, please try copying context again[/red]")
+        exit(1)
+
+    if data_loaded["default-name"] == "!YOUR NAME!":
+        data_loaded["default-name"] = inquirer.text(
+            "Please enter your name for bastion session that will be visible in OCI:").execute()
+
+    if inquirer.confirm("Would you like to change IP?").execute():
+        data_loaded["target-ip"] = inquirer.text(
+            "Please enter your target IP address:").execute()
+
+    if path.exists():
+        if not inquirer.confirm("File exists. Overwrite?").execute():
+            rich.print("[red]Canceled.[/red]")
+            return
+
+    Bastion.write_creds_json(data_loaded, path)
+    rich.print(f"Wrote config into '{path}'")
+
+
+ctx.add_command(_list, "list")
+ctx.add_command(display, "display")
+ctx.add_command(share, "share")
+ctx.add_command(paste, "paste")
