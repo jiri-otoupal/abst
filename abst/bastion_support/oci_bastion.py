@@ -38,6 +38,13 @@ class Bastion:
         self.response: Optional[dict] = None
         self._current_status = None
         self.direct_json_path = direct_json_path
+        self.__mark_used__()
+
+    def __mark_used__(self):
+        cfg_path = Bastion.get_creds_path_resolve(self.context_name)
+        context_cfg = Bastion.load_json(cfg_path)
+        context_cfg["last-time-used"] = datetime.datetime.now().isoformat()
+        Bastion.write_creds_json(context_cfg, cfg_path)
 
     @property
     def current_status(self):
@@ -134,6 +141,7 @@ class Bastion:
         port = target_details["target_resource_port"]
         private_key_path = creds.get("private-key-path", conf.get("private-key-path",
                                                                   "No supplied private key"))
+        user_custom_options = creds.get("ssh-custom-arguments", "")
 
         if private_key_path == "No supplied private key":
             rich.print("[red]No private key in credentials and config specified[/red]")
@@ -151,7 +159,7 @@ class Bastion:
                                                                          creds[
                                                                              "resource-os-username"],
                                                                          ip, port,
-                                                                         shell)
+                                                                         shell, user_custom_options)
         logging.info(f"SSH tunnel exited with code {exit_code}")
         if exit_code == 0:
             print(f"User requested termination {self.get_print_name()}")
@@ -215,10 +223,11 @@ class Bastion:
 
         self.current_status = "digging tunnel"
 
+        user_custom_args = creds.get("ssh-custom-arguments", "")
         ssh_tunnel_arg_str = self.run_ssh_tunnel_port_forward(bid, host, ip, port,
                                                               shell,
                                                               creds.get("local-port", 22),
-                                                              ssh_pub_key_path, force)
+                                                              ssh_pub_key_path, force, user_custom_args)
 
         while status := (sdata := self.get_bastion_state())[
                             "lifecycle_state"] == "ACTIVE" and \
@@ -236,11 +245,15 @@ class Bastion:
 
     def run_ssh_tunnel_managed_session(self, bid, host, private_key_path, username,
                                        ip, port,
-                                       shell):
+                                       shell, custom_user_options: str = ""):
+        if custom_user_options:
+            print(
+                "[yellow][WARNING] Having custom ssh arguments can prevent your ssh command from working[/yellow]")
+
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
 
-        ssh_tunnel_arg_str = (f'ssh -i {private_key_path} {self.custom_ssh_options} '
+        ssh_tunnel_arg_str = (f'ssh -i {private_key_path} {self.custom_ssh_options} {custom_user_options}'
                               f'-o ProxyCommand="ssh -i {private_key_path} -W %h:%p -p {port} {bid}@{host} -A" -p {port} '
                               f'{username}@{ip} -A')
         logging.info(f"Running ssh command {ssh_tunnel_arg_str}")
@@ -250,13 +263,17 @@ class Bastion:
         return ssh_tunnel_arg_str, exit_code
 
     def run_ssh_tunnel_port_forward(self, bid, host, ip, port, shell, local_port,
-                                    ssh_pub_key_path, force=False):
+                                    ssh_pub_key_path, force=False, custom_user_options: str = ""):
+        if custom_user_options:
+            print(
+                "[yellow][WARNING] Having custom ssh arguments can prevent your ssh command from working[/yellow]")
+
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
         additional_args = "" if not force else self.force_ssh_options
 
         ssh_tunnel_arg_str = (
-            f"ssh {self.custom_ssh_options} -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} "
+            f"ssh {self.custom_ssh_options} {custom_user_options} -N -L {local_port}:{ip}:{port} -p 22 {bid}@{host} "
             f"-vvv -i {ssh_pub_key_path.strip('.pub')} {additional_args}")
         logging.info(f"Running ssh command {ssh_tunnel_arg_str}")
         exit_code = self.__run_ssh_tunnel(ssh_tunnel_arg_str, shell)

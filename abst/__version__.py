@@ -10,19 +10,16 @@ __description__ = (
     "CLI Command making OCI Bastion and kubernetes usage simple and fast"
 )
 
-__version__ = "2.3.23"
+__version__ = "2.3.24"
 __author__ = "Jiri Otoupal"
 __author_email__ = "jiri-otoupal@ips-database.eu"
 __license__ = "MIT"
 __url__ = "https://github.com/jiri-otoupal/abst"
 __pypi_repo__ = "https://pypi.org/project/abst/"
 
-__version_name__ = "Octopus X0"
+__version_name__ = "Formatted Giraffe"
 __change_log__ = """
-* Added alias to context, now you can use 'ctx'\n
-* Sharing and Pasting now works for sets too, you can use set_name/context for both\n
-* When pasting, it will ask if you want to change IP and for bastion name renaming\n
-* Removed unused packages\n
-* Fixed filename .json search\n
-* Abst is filtering not json files from context search\n
+* Added new option to context config so user can input custom ssh arguments to 'ssh-custom-arguments' key in context\n
+* Listing context will show last usage time\n
+* Changed formatting of 'abst context list' and 'abst parallel list'\n
 """

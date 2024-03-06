@@ -7,6 +7,7 @@ import click
 import pyperclip
 import rich
 from InquirerPy import inquirer
+from rich.tree import Tree
 
 from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_contexts_location, share_excluded_keys
@@ -28,9 +29,18 @@ def ctx():
 @click.option("--debug", is_flag=True, default=False)
 def _list(debug=False):
     setup_calls(debug)
-    rich.print("Contexts:")
+
+    tree = Tree("Contexts")
+
     for file in Path(default_contexts_location).iterdir():
-        rich.print(f"    {file.name.replace('.json', '')}")
+        cfg = Bastion.load_json(file)
+        used_time = "" if "last-time-used" not in cfg.keys() else f"| Used: {cfg['last-time-used']}"
+        tree.add(f"{file.name.replace('.json', '')} {used_time}")
+
+    if not len(tree.children):
+        rich.print("No contexts")
+
+    rich.print(tree)
 
 
 @context.command(help="Will display JSON format of context")

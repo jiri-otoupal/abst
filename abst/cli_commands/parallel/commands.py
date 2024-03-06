@@ -1,9 +1,13 @@
+from pathlib import Path
+
 import click
 import rich
 from InquirerPy import inquirer
+from rich.tree import Tree
 
 from abst.bastion_support.bastion_scheduler import BastionScheduler
-from abst.config import default_parallel_sets_location
+from abst.bastion_support.oci_bastion import Bastion
+from abst.config import default_parallel_sets_location, default_contexts_location
 from abst.tools import display_scheduled
 from abst.utils.misc_funcs import setup_calls
 
@@ -64,15 +68,23 @@ def create(debug, set_name):
 @click.option("--debug", is_flag=True, default=False)
 def _list(debug):
     setup_calls(debug)
-    rich.print("Sets in parallel folder")
+    tree = Tree("Sets in parallel folder")
+
     for _set in default_parallel_sets_location.iterdir():
         if _set.name.startswith(".") and not _set.name.endswith(".json"):
             continue
-        rich.print(f"   {_set.name}")
+        leaf = tree.add(f"{_set.name.replace('.json', '')}")
         for ctx in _set.iterdir():
+            cfg = Bastion.load_json(ctx)
+            used_time = "" if "last-time-used" not in cfg.keys() else f"| last time used {cfg['last-time-used']}"
             if ctx.name.startswith("."):
                 continue
-            rich.print(f"       {ctx.name.replace('.json', '')}")
+            leaf.add(f"{ctx.name.replace('.json', '')} {used_time}")
+
+    if not len(tree.children):
+        rich.print("No contexts")
+
+    rich.print(tree)
 
 
 @parallel.command("remove", help="Remove Bastion from stack (Can not remove sets)")
@@ -87,13 +99,15 @@ def remove(debug, context_name):
 @parallel.command("run", help="Run All Bastions in fullauto")
 @click.option("--debug", is_flag=True, default=False)
 @click.option("-y", is_flag=True, default=False, help="Automatically confirm")
-@click.option("-f", "--force", is_flag=True, default=False, help="Will force connections ignoring security policies")
+@click.option("-f", "--force", is_flag=True, default=False,
+              help="Will force connections ignoring security policies")
 @click.argument("set_name", default=None, required=False, type=str)
 def run(debug, y, force, set_name=None):
     setup_calls(debug)
     if force:
-        rich.print("[red]Running in force mode[/red][gray] this mode is less secure as it is ignoring key checking and"
-                   " security policies involving known_hosts[/gray]")
+        rich.print(
+            "[red]Running in force mode[/red][gray] this mode is less secure as it is ignoring key checking and"
+            " security policies involving known_hosts[/gray]")
     if set_name:
         set_dir = get_set_dir(set_name)
     else:
