@@ -12,7 +12,6 @@ from requests import ConnectTimeout
 from abst.__version__ import __version_name__, __version__, __change_log__
 from abst.bastion_support.bastion_scheduler import BastionScheduler
 from abst.bastion_support.oci_bastion import Bastion
-from abst.cli_commands.config_cli.commands import config
 from abst.cli_commands.context.commands import context, ctx
 from abst.cli_commands.cp_cli.commands import cp
 from abst.cli_commands.create_cli.commands import create
@@ -118,7 +117,6 @@ signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
 signal.signal(signal.SIGABRT, BastionScheduler.kill_all)
 
 cli.add_command(parallel)
-cli.add_command(config)
 cli.add_command(context)
 cli.add_command(ctx)
 cli.add_command(helm)
