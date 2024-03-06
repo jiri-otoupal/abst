@@ -56,7 +56,7 @@ def display(name, debug=False):
 
 
 @context.command(
-    help="Will print context without local paths and put it in clipboard for sharing")
+    help="Will share context without local paths and put it in clipboard for sharing")
 @click.option("--debug", is_flag=True, default=False)
 @click.option("--raw", is_flag=True, default=False)
 @click.argument("name")
@@ -217,4 +217,4 @@ ctx.add_command(paste, "paste")
 ctx.add_command(generate, "generate")
 ctx.add_command(fill, "fill")
 ctx.add_command(locate, "locate")
-ctx.add_command(upgrade)
+ctx.add_command(upgrade, "upgrade")

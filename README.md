@@ -48,10 +48,10 @@ pip3 install abst
 
 ## How to set up
 
-* Use `abst config fill {context}` to fill your credentials for usage, you can find all the
+* Use `abst ctx fill {context}` to fill your credentials for usage, you can find all the
   credentials on
   cloud provider site, leave context empty if you want to fill default
-* Use `abst generate {context}` to generate default config for context, leave context empty if you
+* Use `abst ctx generate {context}` to generate default config for context, leave context empty if you
   want to generate to
   default
 
@@ -66,8 +66,16 @@ pip3 install abst
 * `abst clean` for removal all the saved credentials
 * `abst use {context}` for using different config that you had filled, `default` is the default
   context in `creds.json`
-* Use `abst locate {context}` to locate your configs, leave context empty if you want to locate
+* Use `abst ctx locate {context}` to locate your configs, leave context empty if you want to locate
   default
+
+### Context commands
+
+* `abst ctx list` to list contexts
+* `abst ctx upgrade <context-name>` to upgrade context you can use `--all` flag to upgrade all contexts
+* `abst ctx locate <context-name>` to get a full path of context
+* `abst ctx share <context-name>` to copy context contents into clipboard and display it, you can use `--raw` to just get json
+* `abst ctx paste <context-name>` to paste contents into context file provided from name
 
 ### Parallel execution
 
