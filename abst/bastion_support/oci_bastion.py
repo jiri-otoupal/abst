@@ -253,7 +253,7 @@ class Bastion:
         print(f"Bastion {self.get_print_name()} initialized")
         print(f"Initializing SSH Tunnel for {self.get_print_name()}")
 
-        ssh_tunnel_arg_str = (f'ssh -i {private_key_path} {self.custom_ssh_options} {custom_user_options}'
+        ssh_tunnel_arg_str = (f'ssh -i {private_key_path} {self.custom_ssh_options} {custom_user_options} '
                               f'-o ProxyCommand="ssh -i {private_key_path} -W %h:%p -p {port} {bid}@{host} -A" -p {port} '
                               f'{username}@{ip} -A')
         logging.info(f"Running ssh command {ssh_tunnel_arg_str}")
