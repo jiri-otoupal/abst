@@ -93,6 +93,7 @@ this program
   will be executed
 * `abst parallel run {context}` will run all the stacked contexts
 * `abst parallel display` will display current stacked contexts
+* `abst parallel list` will list all sets with contexts
 
 ### Helm registry commands
 
