@@ -123,8 +123,8 @@ class BastionScheduler:
             for context_name in cls.__dry_stack:
                 if cls.stopped:
                     return
-                bastion = Bastion(None if context_name == "default" else context_name, region=
-                Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None))
+                region = Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region", None)
+                bastion = Bastion(None if context_name == "default" else context_name, region=region)
                 Bastion.session_list.append(bastion)
                 cls.session_list.append(bastion)
                 cls.__live_stack.add(bastion)
@@ -139,8 +139,10 @@ class BastionScheduler:
                 if cls.stopped:
                     return
                 context_name = context_path.name[:-5]
-                bastion = Bastion(None if context_name == "default" else context_name, region=
-                Bastion.load_json(context_path).get("region", None), direct_json_path=context_path)
+                region = Bastion.load_json(context_path).get("region", None)
+                bastion = Bastion(None if context_name == "default" else context_name, region=region,
+                                  direct_json_path=context_path)
+
                 Bastion.session_list.append(bastion)
                 cls.session_list.append(bastion)
                 cls.__live_stack.add(bastion)

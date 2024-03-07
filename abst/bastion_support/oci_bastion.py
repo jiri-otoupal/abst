@@ -28,6 +28,12 @@ class Bastion:
     force_ssh_options: str = "-o StrictHostKeyChecking=no -o ServerAliveInterval=20 -o UserKnownHostsFile=/dev/null"
 
     def __init__(self, context_name=None, region=None, direct_json_path=None):
+        """
+
+        @param context_name:
+        @param region:
+        @param direct_json_path:
+        """
         self.bid: Optional[str] = None
         self.context_name = context_name
         self.region = region
@@ -38,13 +44,17 @@ class Bastion:
         self.response: Optional[dict] = None
         self._current_status = None
         self.direct_json_path = direct_json_path
-        self.__mark_used__()
+        self.__mark_used__(direct_json_path)
 
-    def __mark_used__(self):
-        cfg_path = Bastion.get_creds_path_resolve(self.context_name)
+    def __mark_used__(self, path: Path | None = None):
+        if path is None:
+            cfg_path = Bastion.get_creds_path_resolve(self.context_name)
+        else:
+            cfg_path = path
+
         context_cfg = Bastion.load_json(cfg_path)
         context_cfg["last-time-used"] = datetime.datetime.now().isoformat()
-        Bastion.write_creds_json(context_cfg, cfg_path)
+        Bastion.write_creds_json(context_cfg, path)
 
     @property
     def current_status(self):
