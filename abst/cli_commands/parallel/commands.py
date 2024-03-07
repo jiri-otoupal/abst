@@ -21,6 +21,17 @@ def parallel():
     pass
 
 
+@click.group(help="Alias for Parallel Bastion Control group")
+def pl():
+    """
+    Only Port Forwarded sessions are supported
+
+    This makes it possible to run multiple forward sessions of multiple context in
+     the same time, useful when working with multiple clusters
+    """
+    pass
+
+
 @parallel.command("add", help="Add Bastion to stack")
 @click.option("--debug", is_flag=True, default=False)
 @click.argument("context-name", default="default")
@@ -149,3 +160,11 @@ def display(debug, set_name):
     else:
         set_dir = None
     display_scheduled(set_dir)
+
+
+pl.add_command(add)
+pl.add_command(create)
+pl.add_command(_list, name="list")
+pl.add_command(remove)
+pl.add_command(run)
+pl.add_command(display)

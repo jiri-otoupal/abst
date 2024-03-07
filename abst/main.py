@@ -17,7 +17,7 @@ from abst.cli_commands.cp_cli.commands import cp
 from abst.cli_commands.create_cli.commands import create
 from abst.cli_commands.helm_cli.commands import helm
 from abst.cli_commands.kubectl_cli.commands import ssh_pod, log_pod
-from abst.cli_commands.parallel.commands import parallel
+from abst.cli_commands.parallel.commands import parallel, pl
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
 from abst.notifier.version_notifier import Notifier
 from abst.utils.misc_funcs import setup_calls
@@ -117,6 +117,7 @@ signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
 signal.signal(signal.SIGABRT, BastionScheduler.kill_all)
 
 cli.add_command(parallel)
+cli.add_command(pl)
 cli.add_command(context)
 cli.add_command(ctx)
 cli.add_command(helm)
