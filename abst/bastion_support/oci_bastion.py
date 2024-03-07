@@ -304,8 +304,9 @@ class Bastion:
         try:
             self.response = response = Bastion.parse_response(res)
             logging.debug(f"Server Response: {response}")
-        except JSONDecodeError:
+        except JSONDecodeError as e:
             rich.print(f"Failed to decode json: {res}")
+            logging.error(f"Exception {e}")
         bid = response.get("id", None)
 
         return bid, response
@@ -326,8 +327,8 @@ class Bastion:
             Bastion.session_list.append(trs["id"])
             Bastion.session_desc[trs["id"]] = creds.get("region", None)
             logging.debug(f"Added session id of {self.context_name}")
-        except:
-            pass
+        except Exception as e:
+            logging.error(f"Exception {e}")
         return creds["host"], creds["target-ip"], creds["target-port"], ssh_pub_path, res
 
     @classmethod
@@ -368,8 +369,8 @@ class Bastion:
                 Bastion.session_list.append(trs["id"])
                 Bastion.session_desc[trs["id"]] = creds.get("region", None)
                 logging.debug(f"Added session id of {self.context_name}")
-            except:
-                pass
+            except Exception as e:
+                logging.error(f"Exception {e}")
             return res
         except KeyError as ex:
             rich.print(f"Missing filled out parameter for '{self.get_print_name()}' {ex}")
