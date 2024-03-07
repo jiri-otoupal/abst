@@ -409,21 +409,31 @@ class Bastion:
 
     @classmethod
     def load_json(cls, path=default_creds_path) -> dict:
+        if not path.name.endswith(".json"):
+            logging.error(f"File is not json!")
+            return {}
+
         if not default_conf_path.exists() and path == default_conf_path:
             default_conf_path.parent.mkdir(exist_ok=True)
             with open(str(path), "w") as f:
                 json.dump(
                     {"last-check": datetime.datetime.timestamp(datetime.datetime.now())},
                     f, indent=3)
-
-        with open(str(path), "r") as f:
-            creds = json.load(f)
-            if "delete_this" in creds.keys():
-                rich.print(
-                    f"[red]'Delete This' Tag not removed! Please Remove it in {path} "
-                    f"before continuing[/red]")
-                exit(1)
-            logging.debug(f"Loaded Credentials {creds}")
+        try:
+            with open(str(path), "r") as f:
+                creds = json.load(f)
+                if isinstance(creds, str):
+                    logging.error(f"Failed to load creds {path} content is loaded as string")
+                    return {}
+                if "delete_this" in creds.keys():
+                    rich.print(
+                        f"[red]'Delete This' Tag not removed! Please Remove it in {path} "
+                        f"before continuing[/red]")
+                    exit(1)
+                logging.debug(f"Loaded Credentials {creds}")
+        except JSONDecodeError:
+            logging.error(f"Failed to load json {path}")
+            return {}
         return creds
 
     @classmethod

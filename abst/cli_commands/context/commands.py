@@ -34,6 +34,8 @@ def _list(debug=False):
     tree = Tree("Contexts")
 
     for file in Path(default_contexts_location).iterdir():
+        if file.name.startswith(".") or not file.name.endswith(".json"):
+            continue
         cfg = Bastion.load_json(file)
         used_time = "" if "last-time-used" not in cfg.keys() else f"| Used: {cfg['last-time-used']}"
         tree.add(f"{file.name.replace('.json', '')} {used_time}")

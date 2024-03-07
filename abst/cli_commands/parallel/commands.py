@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import click
 import rich
 from InquirerPy import inquirer
@@ -7,7 +5,7 @@ from rich.tree import Tree
 
 from abst.bastion_support.bastion_scheduler import BastionScheduler
 from abst.bastion_support.oci_bastion import Bastion
-from abst.config import default_parallel_sets_location, default_contexts_location
+from abst.config import default_parallel_sets_location
 from abst.tools import display_scheduled
 from abst.utils.misc_funcs import setup_calls
 
@@ -71,13 +69,15 @@ def _list(debug):
     tree = Tree("Sets in parallel folder")
 
     for _set in default_parallel_sets_location.iterdir():
-        if _set.name.startswith(".") and not _set.name.endswith(".json"):
+        if _set.name.startswith("."):
             continue
         leaf = tree.add(f"{_set.name.replace('.json', '')}")
         for ctx in _set.iterdir():
+            if ctx.name.startswith(".") or not ctx.name.endswith(".json"):
+                continue
             cfg = Bastion.load_json(ctx)
             used_time = "" if "last-time-used" not in cfg.keys() else f"| last time used {cfg['last-time-used']}"
-            if ctx.name.startswith("."):
+            if ctx.name.startswith(".") or not ctx.name.endswith(".json"):
                 continue
             leaf.add(f"{ctx.name.replace('.json', '')} {used_time}")
 
