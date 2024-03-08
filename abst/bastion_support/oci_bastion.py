@@ -54,7 +54,7 @@ class Bastion:
 
         context_cfg = Bastion.load_json(cfg_path)
         context_cfg["last-time-used"] = datetime.datetime.now().isoformat()
-        Bastion.write_creds_json(context_cfg, path)
+        Bastion.write_creds_json(context_cfg, cfg_path)
 
     @property
     def current_status(self):
