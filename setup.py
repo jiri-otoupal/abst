@@ -26,7 +26,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.7,<4",
-    install_requires=["click", "rich", "inquirerpy", "oci==3.36.0", "lastversion",
+    install_requires=["click", "rich", "inquirerpy", "oci==2.95.0", "lastversion",
                       "semantic_version", "pyperclip",
                       "bext"],
     extras_require={
