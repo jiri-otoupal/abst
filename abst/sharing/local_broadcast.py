@@ -31,8 +31,8 @@ class LocalBroadcast:
             self._data_is_owner = False
 
         try:
-            # Attempt to create the shared memory block for data length
             self._len_shm = shared_memory.SharedMemory(name=self._len_name, create=True, size=8)
+            self._len_shm.buf[:8] = struct.pack('Q', 0)
             self._len_is_owner = True
         except FileExistsError:
             self._len_shm = shared_memory.SharedMemory(name=self._len_name, create=False)
@@ -65,6 +65,9 @@ class LocalBroadcast:
         # Read the data length from the length shared memory
         data_length = self.get_used_space()
 
+        if data_length == -1:
+            return {}
+
         # Read data from the main shared memory
         data = bytes(self._data_shm.buf[:data_length]).decode('utf-8')
         try:
@@ -77,13 +80,18 @@ class LocalBroadcast:
         Get the size of the shared memory
         @return: Number of bytes used
         """
+        if self._len_shm.buf is None:
+            return -1
         return struct.unpack('Q', self._len_shm.buf[:8])[0]
 
     def close(self):
         """Close and unlink the shared memory blocks."""
-        self._data_shm.close()
-        self._len_shm.close()
-        if self._data_is_owner:
-            self._data_shm.unlink()
-        if self._len_is_owner:
-            self._len_shm.unlink()
+        try:
+            self._data_shm.close()
+            self._len_shm.close()
+            if self._data_is_owner:
+                self._data_shm.unlink()
+            if self._len_is_owner:
+                self._len_shm.unlink()
+        except FileNotFoundError:
+            pass
