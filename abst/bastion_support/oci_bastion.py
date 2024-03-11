@@ -301,13 +301,14 @@ class Bastion:
 
     def load_response(self, res):
         response = None
+        bid = None
         try:
             self.response = response = Bastion.parse_response(res)
             logging.debug(f"Server Response: {response}")
+            bid = response.get("id", None)
         except JSONDecodeError as e:
             rich.print(f"Failed to decode json: {res}")
             logging.error(f"Exception {e}")
-        bid = response.get("id", None)
 
         return bid, response
 
