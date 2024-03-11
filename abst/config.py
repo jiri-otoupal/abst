@@ -21,6 +21,7 @@ share_excluded_keys: tuple = ("private-key-path", "ssh-pub-path", "last-time-use
 
 # Max Shared JSON size
 max_json_shared = 1048576  # Bytes
+broadcast_shm_name = "abst_shared_memory"
 
 
 def get_public_key(ssh_path):

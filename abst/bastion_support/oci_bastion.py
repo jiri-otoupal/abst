@@ -16,7 +16,7 @@ from oci.exceptions import ServiceError
 
 from abst.config import default_creds_path, \
     default_contexts_location, default_conf_path, \
-    default_conf_contents, get_public_key, default_parallel_sets_location
+    default_conf_contents, get_public_key, default_parallel_sets_location, broadcast_shm_name
 from abst.sharing.local_broadcast import LocalBroadcast
 from abst.wrappers import mark_on_exit
 
@@ -47,8 +47,8 @@ class Bastion:
         self.direct_json_path = direct_json_path
         self.__mark_used__(direct_json_path)
 
-        self.lb = LocalBroadcast(context_name)
-        self.lb.store_json({context_name: {"region": self.region, "connected": self.connected}})
+        self.lb = LocalBroadcast(broadcast_shm_name)
+        self.lb.store_json({context_name: {"region": self.region}})
 
     def __mark_used__(self, path: Path | None = None):
         if path is None:
@@ -67,6 +67,7 @@ class Bastion:
     @current_status.setter
     def current_status(self, value):
         self._current_status = value
+        self.lb.store_json({self.context_name: {"status": value}})
 
     def get_bastion_state(self) -> dict:
         session_id = self.response["id"]
@@ -97,6 +98,8 @@ class Bastion:
             print(f"Removed Session {self.get_print_name()}")
         except Exception:
             print(f"Looks like Bastion is already deleted {self.get_print_name()}")
+        finally:
+            self.lb.close()
 
     @classmethod
     def delete_bastion_session(cls, sess_id, region=None):
@@ -205,7 +208,16 @@ class Bastion:
         Bastion.shell = shell
         print(f"Loading Credentials for {self.get_print_name()}")
         creds = self.load_self_creds()
-        title(f'{self.get_print_name()}:{creds["local-port"]}')
+        local_port = creds.get("local-port", 22)
+        username = creds.get("resource-os-username", None)
+        if username:
+            self.lb.store_json({self.context_name: {"port": local_port, "username": username}})
+        else:
+            rich.print(
+                "[yellow]No username in context json, please "
+                "specify resource-os-username for abst ssh to work[/yellow]")
+
+        title(f'{self.get_print_name()}:{local_port}')
 
         self.current_status = "creating bastion session"
 
@@ -240,7 +252,7 @@ class Bastion:
         user_custom_args = creds.get("ssh-custom-arguments", "")
         ssh_tunnel_arg_str = self.run_ssh_tunnel_port_forward(bid, host, ip, port,
                                                               shell,
-                                                              creds.get("local-port", 22),
+                                                              local_port,
                                                               ssh_pub_key_path, force, user_custom_args)
 
         while status := (sdata := self.get_bastion_state())[

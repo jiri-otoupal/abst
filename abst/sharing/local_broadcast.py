@@ -45,6 +45,9 @@ class LocalBroadcast:
         """
 
         data_before = self.retrieve_json()
+        for key, value in data.items():
+            data_before[key].pop("status", None)
+
         data_copy = always_merger.merge(data, data_before)
 
         serialized_data = json.dumps(data_copy).encode('utf-8')
