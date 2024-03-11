@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-import subprocess
 
 import click
 import rich
@@ -56,12 +55,7 @@ def log_pod(pod_name, debug):
     setup_calls(debug)
 
     try:
-        rich.print("Fetching pods")
-        pod_lines = (
-            subprocess.check_output(f"kubectl get pods -A".split(" "))
-            .decode()
-            .split("\n")
-        )
+        pod_lines = fetch_pods()
     except FileNotFoundError:
         rich.print("[red]kubectl not found on this machine[/red]")
         return
