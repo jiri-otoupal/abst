@@ -46,7 +46,9 @@ class LocalBroadcast:
 
         data_before = self.retrieve_json()
         for key, value in data.items():
-            data_before[key].pop("status", None)
+            for s_key in value.keys():
+                if type(data_before[key][s_key]) == type(data[key][s_key]):
+                    data_before[key].pop(s_key)
 
         data_copy = always_merger.merge(data, data_before)
 
