@@ -63,6 +63,7 @@ pip3 install abst
   deleted, will keep your,
   leave context empty if you want to use default
   connection alive till you kill this script
+* `abst do forward/managed {context}` alias for `abst create`
 * `abst clean` for removal all the saved credentials
 * `abst use {context}` for using different config that you had filled, `default` is the default
   context in `creds.json`
@@ -74,8 +75,16 @@ pip3 install abst
 * `abst ctx list` to list contexts
 * `abst ctx upgrade <context-name>` to upgrade context you can use `--all` flag to upgrade all contexts
 * `abst ctx locate <context-name>` to get a full path of context
-* `abst ctx share <context-name>` to copy context contents into clipboard and display it, you can use `--raw` to just get json
+* `abst ctx share <context-name>` to copy context contents into clipboard and display it, you can use `--raw` to just
+  get json
 * `abst ctx paste <context-name>` to paste contents into context file provided from name
+
+### Session commands
+
+* `abst ssh` facilitates selecting an instance to connect to. The optional `port` argument can be specified partially; a
+  connection is established if only one match is found. Use `-n <context-name>` to filter a connection, where the name
+  can be a partial match. `abst` employs the `in` operator for searching and proceeds with SSH if a single matching
+  instance exists.
 
 ### Parallel execution
 
@@ -105,6 +114,7 @@ this program
 
 ### Kubectl commands
 
+* `abst pod ssh <part of name>` will ssh into pod with similar name, if multiple found it will display select
 * `abst cp secret secret_namespace target_namespace source_namespace(optional)` this will copy
   secret to target namespace, without providing source namespace it will use current as a source
 
