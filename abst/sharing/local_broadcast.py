@@ -56,13 +56,17 @@ class LocalBroadcast:
         Retrieve and deserialize JSON data from shared memory.
         """
         # Read the data length from the length shared memory
-        data_length = self.get_data_length()
+        data_length = self.get_used_space()
 
         # Read data from the main shared memory
         data = bytes(self._data_shm.buf[:data_length]).decode('utf-8')
         return json.loads(data)
 
-    def get_data_length(self):
+    def get_used_space(self) -> int:
+        """
+        Get the size of the shared memory
+        @return: Number of bytes used
+        """
         return struct.unpack('Q', self._len_shm.buf[:8])[0]
 
     def close(self):

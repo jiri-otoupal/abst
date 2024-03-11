@@ -49,7 +49,6 @@ class Bastion:
 
         self.lb = LocalBroadcast(context_name)
 
-
     def __mark_used__(self, path: Path | None = None):
         if path is None:
             cfg_path = Bastion.get_creds_path_resolve(self.context_name)

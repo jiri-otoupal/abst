@@ -34,7 +34,7 @@ class TestLocalBroadcast(unittest.TestCase):
 
         # Create a new LocalBroadcast instance to mimic another process
         new_instance = LocalBroadcast(self.shared_memory_name, self.shared_memory_size)
-        self.assertEqual(size, new_instance.get_data_length())
+        self.assertEqual(size, new_instance.get_used_space())
         initial_data_retrieved = new_instance.retrieve_json()
         self.assertEqual(initial_data, initial_data_retrieved)
 
