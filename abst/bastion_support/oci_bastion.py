@@ -17,6 +17,7 @@ from oci.exceptions import ServiceError
 from abst.config import default_creds_path, \
     default_contexts_location, default_conf_path, \
     default_conf_contents, get_public_key, default_parallel_sets_location
+from abst.sharing.local_broadcast import LocalBroadcast
 from abst.wrappers import mark_on_exit
 
 
@@ -45,6 +46,9 @@ class Bastion:
         self._current_status = None
         self.direct_json_path = direct_json_path
         self.__mark_used__(direct_json_path)
+
+        self.lb = LocalBroadcast(context_name)
+
 
     def __mark_used__(self, path: Path | None = None):
         if path is None:
