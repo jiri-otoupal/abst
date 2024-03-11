@@ -6,11 +6,13 @@ from typing import Optional
 
 import rich
 from click import clear
+from rich import print
 from rich.align import Align
 
 from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_stack_location, default_stack_contents, \
-    default_contexts_location
+    default_contexts_location, broadcast_shm_name
+from abst.sharing.local_broadcast import LocalBroadcast
 from abst.wrappers import load_stack_decorator
 
 
@@ -172,14 +174,16 @@ class BastionScheduler:
         blist_copy = list(cls.session_list)
         for i, sess in enumerate(blist_copy):
             try:
-                print(f"Killing {sess.bid}")
+                rich.print(f"[red]Killing[/red] {sess.bid}")
                 Bastion.current_status = "deleting"
                 sess.kill()
                 Bastion.delete_bastion_session(sess.bid, sess.region)
             except Exception:
-                print(f"Looks like Bastion is already deleted {sess}")
+                pass
             finally:
                 print(f"Deleting {i + 1}/{len(blist_copy)}")
+        rich.print("[green]Closing shared memory[/green]")
+        LocalBroadcast(broadcast_shm_name).close()
         exit(0)
 
     @classmethod

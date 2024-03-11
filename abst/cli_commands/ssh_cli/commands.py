@@ -18,6 +18,9 @@ def ssh_lin(port, name, debug):
     lb = LocalBroadcast(broadcast_shm_name)
     data = lb.retrieve_json()
 
+    if len(data.keys()) == 0:
+        rich.print("[yellow]No connected sessions[/yellow]")
+
     if name and len(keys := filter_keys_by_substring(data, name)) == 1:
         do_ssh(keys[0], data[keys[0]]["username"], data[keys[0]]["port"])
         return
@@ -26,7 +29,12 @@ def ssh_lin(port, name, debug):
         do_ssh(keys[0], data[keys[0]]["username"], data[keys[0]]["port"])
         return
 
-    longest_key = max(len(key) for key in data.keys())
+    if (key_lens := [len(key) for key in data.keys()]) and len(key_lens) > 0:
+        longest_key = max(key_lens)
+    else:
+        rich.print(f"[yellow]No alive contexts found[/yellow]")
+        return
+
     questions = [{"name": f"{key.ljust(longest_key)} |= status: {data['status']}", "value": (key, data)} for key, data
                  in data.items()]
 

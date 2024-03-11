@@ -86,7 +86,7 @@ class Bastion:
         return self.context_name if self.context_name else "default"
 
     def kill(self):
-        print(f"Killing Bastion {self.get_print_name()} SSH Tunnel")
+        rich.print(f"[red]Killing Bastion {self.get_print_name()} SSH Tunnel[/red]")
         try:
             Bastion.stopped = True
             self.active_tunnel.send_signal(signal.SIGTERM)
@@ -99,12 +99,10 @@ class Bastion:
         except Exception:
             print(f"Looks like Bastion is already deleted {self.get_print_name()}")
         finally:
-            self.lb.close()
+            self.lb.delete_context(self.context_name)
 
     @classmethod
     def delete_bastion_session(cls, sess_id, region=None):
-        print("Removing Bastion session")
-
         try:
             config = oci.config.from_file()
             if region:

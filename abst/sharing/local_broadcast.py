@@ -47,21 +47,30 @@ class LocalBroadcast:
         data_before = self.retrieve_json()
         for key, value in data.items():
             for s_key in value.keys():
-                if type(data_before[key][s_key]) == type(data[key][s_key]):
+                if data_before.get(key, None) is not None and data_before.get(key, None).get(s_key,
+                                                                                             None) is not None and type(
+                    data_before[key][s_key]) == type(data[key][s_key]):
                     data_before[key].pop(s_key)
 
         data_copy = always_merger.merge(data, data_before)
 
-        serialized_data = json.dumps(data_copy).encode('utf-8')
+        serialized_data = self.__write_json(data_copy)
+        return len(serialized_data)
+
+    def __write_json(self, data: dict):
+        serialized_data = json.dumps(data).encode('utf-8')
         if len(serialized_data) > self._size:
             raise ValueError("Data exceeds allocated shared memory size.")
-
         # Write the data length to the length shared memory
         self._len_shm.buf[:8] = struct.pack('Q', len(serialized_data))
-
         # Write data to the main shared memory
         self._data_shm.buf[:len(serialized_data)] = serialized_data
-        return len(serialized_data)
+        return serialized_data
+
+    def delete_context(self, context: str):
+        data_before = self.retrieve_json()
+        data_before.pop(context, None)
+        self.__write_json(data_before)
 
     def retrieve_json(self) -> dict:
         """
