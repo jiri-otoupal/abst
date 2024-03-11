@@ -3,6 +3,8 @@ import struct
 from json import JSONDecodeError
 from multiprocessing import shared_memory
 
+from deepmerge import always_merger
+
 from abst.config import max_json_shared
 
 
@@ -41,10 +43,9 @@ class LocalBroadcast:
         Serialize and store JSON data in shared memory.
         @return: Size of the serialized data in bytes
         """
-        data_copy = dict(data)
 
         data_before = self.retrieve_json()
-        data_copy.update(data_before)
+        data_copy = always_merger.merge(data, data_before)
 
         serialized_data = json.dumps(data_copy).encode('utf-8')
         if len(serialized_data) > self._size:
