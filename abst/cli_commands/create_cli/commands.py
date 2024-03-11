@@ -11,6 +11,11 @@ def create():
     pass
 
 
+@click.group(name="do", help="Alias Group of commands for creating Bastion sessions")
+def _do():
+    pass
+
+
 @create.command(
     "forward",
     help="Creates and connects to Bastion session indefinitely until terminated by user",
@@ -72,3 +77,7 @@ def managed(shell, debug, context_name):
             shell=shell)
 
         sleep(1)
+
+
+_do.add_command(forward)
+_do.add_command(managed)
