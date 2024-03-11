@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-import subprocess
 
 import click
 import rich
@@ -10,7 +9,12 @@ from InquirerPy import inquirer
 from abst.utils.misc_funcs import setup_calls, fetch_pods
 
 
-@click.command("ssh", help="Will SSH into pod with containing string name")
+@click.group()
+def pod():
+    pass
+
+
+@pod.command("ssh", help="Will SSH into pod with containing string name")
 @click.argument("pod_name")
 @click.option("--debug", is_flag=True, default=False)
 def ssh_pod(pod_name, debug):
@@ -49,19 +53,14 @@ def ssh_pod(pod_name, debug):
     )
 
 
-@click.command("logs", help="Will get logs from a pod with containing string name")
+@pod.command("logs", help="Will get logs from a pod with containing string name")
 @click.argument("pod_name")
 @click.option("--debug", is_flag=True, default=False)
 def log_pod(pod_name, debug):
     setup_calls(debug)
 
     try:
-        rich.print("Fetching pods")
-        pod_lines = (
-            subprocess.check_output(f"kubectl get pods -A".split(" "))
-            .decode()
-            .split("\n")
-        )
+        pod_lines = fetch_pods()
     except FileNotFoundError:
         rich.print("[red]kubectl not found on this machine[/red]")
         return

@@ -14,10 +14,11 @@ from abst.bastion_support.bastion_scheduler import BastionScheduler
 from abst.bastion_support.oci_bastion import Bastion
 from abst.cli_commands.context.commands import context, ctx
 from abst.cli_commands.cp_cli.commands import cp
-from abst.cli_commands.create_cli.commands import create
+from abst.cli_commands.create_cli.commands import create, _do
 from abst.cli_commands.helm_cli.commands import helm
-from abst.cli_commands.kubectl_cli.commands import ssh_pod, log_pod
+from abst.cli_commands.kubectl_cli.commands import pod
 from abst.cli_commands.parallel.commands import parallel, pl
+from abst.cli_commands.ssh_cli.commands import ssh_lin
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
 from abst.notifier.version_notifier import Notifier
 from abst.utils.misc_funcs import setup_calls
@@ -122,9 +123,10 @@ cli.add_command(context)
 cli.add_command(ctx)
 cli.add_command(helm)
 cli.add_command(cp)
-cli.add_command(ssh_pod)
-cli.add_command(log_pod)
+cli.add_command(pod)
 cli.add_command(create)
+cli.add_command(_do)
+cli.add_command(ssh_lin)
 
 if __name__ == "__main__":
     main()

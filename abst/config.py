@@ -19,6 +19,10 @@ default_conf_contents: dict = {"used_context": None, "private-key-path": "~/.ssh
 # Share Config
 share_excluded_keys: tuple = ("private-key-path", "ssh-pub-path", "last-time-used")
 
+# Max Shared JSON size
+max_json_shared = 1048576  # Bytes
+broadcast_shm_name = "abst_shared_memory"
+
 
 def get_public_key(ssh_path):
     with open(str(Path(ssh_path).expanduser().resolve()), "r") as f:
