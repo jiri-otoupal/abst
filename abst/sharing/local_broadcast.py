@@ -14,7 +14,7 @@ class LocalBroadcast:
     def __new__(cls, name: str, size: int = max_json_shared):
         if cls._instance is None:
             cls._instance = super(LocalBroadcast, cls).__new__(cls)
-            cls._instance.__init_shared_memory(name, size)
+            cls._instance.__init_shared_memory(name[:14], size)
         return cls._instance
 
     def __init_shared_memory(self, name: str, size: int):
