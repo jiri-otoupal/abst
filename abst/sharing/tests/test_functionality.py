@@ -44,6 +44,14 @@ class TestLocalBroadcast(unittest.TestCase):
         updated_data_retrieved = new_instance.retrieve_json()
         self.assertEqual(updated_data, updated_data_retrieved)
 
+    def test_previous_data_not_overwritten(self):
+        # Create a new LocalBroadcast instance to mimic another process
+        new_instance_a = LocalBroadcast(self.shared_memory_name, self.shared_memory_size)
+        new_instance_a.store_json({"Britney": "Hey"})
+        new_instance_b = LocalBroadcast(self.shared_memory_name, self.shared_memory_size)
+        new_instance_b.store_json({"Katty": "Whassup"})
+        self.assertEqual(new_instance_b.retrieve_json(), {"Britney": "Hey", "Katty": "Whassup"})
+
     def test_exceed_memory_size(self):
         # This test verifies that an error is raised when trying to store data
         # that exceeds the allocated shared memory size

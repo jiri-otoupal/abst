@@ -1,5 +1,6 @@
 import json
 import struct
+from json import JSONDecodeError
 from multiprocessing import shared_memory
 
 from abst.config import max_json_shared
@@ -40,7 +41,12 @@ class LocalBroadcast:
         Serialize and store JSON data in shared memory.
         @return: Size of the serialized data in bytes
         """
-        serialized_data = json.dumps(data).encode('utf-8')
+        data_copy = dict(data)
+
+        data_before = self.retrieve_json()
+        data_copy.update(data_before)
+
+        serialized_data = json.dumps(data_copy).encode('utf-8')
         if len(serialized_data) > self._size:
             raise ValueError("Data exceeds allocated shared memory size.")
 
@@ -60,7 +66,10 @@ class LocalBroadcast:
 
         # Read data from the main shared memory
         data = bytes(self._data_shm.buf[:data_length]).decode('utf-8')
-        return json.loads(data)
+        try:
+            return json.loads(data)
+        except JSONDecodeError:
+            return {}
 
     def get_used_space(self) -> int:
         """

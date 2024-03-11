@@ -48,6 +48,7 @@ class Bastion:
         self.__mark_used__(direct_json_path)
 
         self.lb = LocalBroadcast(context_name)
+        self.lb.store_json()
 
     def __mark_used__(self, path: Path | None = None):
         if path is None:
