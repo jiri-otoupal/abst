@@ -1,4 +1,5 @@
 import json
+import logging
 import struct
 from json import JSONDecodeError
 from multiprocessing import shared_memory
@@ -87,6 +88,7 @@ class LocalBroadcast:
         try:
             return json.loads(data)
         except JSONDecodeError:
+            logging.debug("Failed to load {data}")
             return {}
 
     def get_used_space(self) -> int:
