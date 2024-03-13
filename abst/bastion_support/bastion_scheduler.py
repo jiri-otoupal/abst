@@ -11,8 +11,7 @@ from rich.align import Align
 
 from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_stack_location, default_stack_contents, \
-    default_contexts_location, broadcast_shm_name
-from abst.sharing.local_broadcast import LocalBroadcast
+    default_contexts_location
 from abst.wrappers import load_stack_decorator
 
 
@@ -183,7 +182,6 @@ class BastionScheduler:
             finally:
                 print(f"Deleting {i + 1}/{len(blist_copy)}")
         rich.print("[green]Closing shared memory[/green]")
-        LocalBroadcast(broadcast_shm_name).close()
         exit(0)
 
     @classmethod
