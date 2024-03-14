@@ -18,7 +18,7 @@ def ssh_lin(port, name, debug):
     lb = LocalBroadcast(broadcast_shm_name)
     data = lb.retrieve_json()
     # Refresh memory because of a system
-    lb.__write_json(data)
+    lb._write_json(data)
 
     if len(data.keys()) == 0:
         rich.print("[yellow]No connected sessions[/yellow]")

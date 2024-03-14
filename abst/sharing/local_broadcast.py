@@ -55,10 +55,10 @@ class LocalBroadcast:
 
         data_copy = always_merger.merge(data, data_before)
 
-        serialized_data = self.__write_json(data_copy)
+        serialized_data = self._write_json(data_copy)
         return len(serialized_data)
 
-    def __write_json(self, data: dict):
+    def _write_json(self, data: dict):
         serialized_data = json.dumps(data).encode('utf-8')
         if len(serialized_data) > self._size:
             raise ValueError("Data exceeds allocated shared memory size.")
@@ -71,7 +71,7 @@ class LocalBroadcast:
     def delete_context(self, context: str):
         data_before = self.retrieve_json()
         data_before.pop(context, None)
-        self.__write_json(data_before)
+        self._write_json(data_before)
 
     def retrieve_json(self) -> dict:
         """
