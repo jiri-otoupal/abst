@@ -22,8 +22,8 @@ class TestLocalBroadcast(unittest.TestCase):
 
     def test_store_and_retrieve_json(self):
         test_data = {'key': 'value', 'integer': 42, 'float': 3.14, 'list': [1, 2, 3]}
-        self.lb.store_json(test_data)
-        retrieved_data = self.lb.retrieve_json()
+        self.lb.store_json("test", test_data)
+        retrieved_data = self.lb.retrieve_json("test")
         self.assertEqual(test_data, retrieved_data)
 
     def test_data_length_persistence(self):

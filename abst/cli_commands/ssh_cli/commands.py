@@ -16,9 +16,7 @@ def ssh_lin(port, name, debug):
     setup_calls(debug)
 
     lb = LocalBroadcast(broadcast_shm_name)
-    data = lb.retrieve_json()
-    # Refresh memory because of a system
-    lb._write_json(data)
+    data = lb.list_contents()
 
     if len(data.keys()) == 0:
         rich.print("[yellow]No connected sessions[/yellow]")
@@ -37,8 +35,14 @@ def ssh_lin(port, name, debug):
         rich.print(f"[yellow]No alive contexts found[/yellow]")
         return
 
-    questions = [{"name": f"{key.ljust(longest_key)} |= status: {data['status']}", "value": (key, data)} for key, data
-                 in data.items()]
+    for key, value in data.items():
+        value["compatible"] = len({"username", "port"} - set(value.keys())) == 0
+
+    questions = [
+        {"name": f"{key.ljust(longest_key)} |= status: {data['status']} | Context compatible: {data['compatible']}",
+         "value": (key, data)} for
+        key, data
+        in data.items()]
 
     context_name, context = inquirer.select("Select context to ssh to:", questions).execute()
 

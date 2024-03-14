@@ -1,6 +1,7 @@
 from pathlib import Path
 
 # Default config
+default_shared_mem_path: Path = (Path().home().resolve() / ".abst" / "shared_mem")
 default_stack_location: Path = (Path().home().resolve() / ".abst" / "stack.json")
 default_conf_path: Path = (Path().home().resolve() / ".abst" / "config.json")
 default_creds_path: Path = (Path().home().resolve() / ".abst" / "creds.json")

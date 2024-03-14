@@ -48,7 +48,7 @@ class Bastion:
         self.__mark_used__(direct_json_path)
 
         self.lb = LocalBroadcast(broadcast_shm_name)
-        self.lb.store_json({context_name: {"region": self.region}})
+        self.lb.store_json(context_name, {"region": self.region})
 
     def __mark_used__(self, path: Path | None = None):
         if path is None:
@@ -67,7 +67,7 @@ class Bastion:
     @current_status.setter
     def current_status(self, value):
         self._current_status = value
-        self.lb.store_json({self.context_name: {"status": value}})
+        self.lb.store_json(self.context_name, {"status": value})
 
     def get_bastion_state(self) -> dict:
         session_id = self.response["id"]
@@ -209,7 +209,7 @@ class Bastion:
         local_port = creds.get("local-port", 22)
         username = creds.get("resource-os-username", None)
         if username:
-            self.lb.store_json({self.context_name: {"port": local_port, "username": username}})
+            self.lb.store_json(self.context_name, {"port": local_port, "username": username})
         else:
             rich.print(
                 "[yellow]No username in context json, please "
