@@ -88,7 +88,7 @@ class LocalBroadcast:
         try:
             return json.loads(data)
         except JSONDecodeError:
-            logging.debug("Failed to load {data}")
+            logging.debug(f"Failed to load {data}")
             return {}
 
     def get_used_space(self) -> int:
