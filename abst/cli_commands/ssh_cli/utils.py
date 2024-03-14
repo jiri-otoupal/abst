@@ -16,7 +16,7 @@ def filter_keys_by_port(data: dict, port: int):
     return [key for key, data in data.items() if port in str(data.get('port', None))]
 
 
-def do_ssh(context_name, username, port):
+def do_ssh(context_name: str, username, port):
     rich.print(f"[green]Running SSH to {context_name}[/green] "
                f"[yellow]{username}@localhost:{port}[/yellow]")
     os.system(f'ssh {username}@127.0.0.1 -p {port}')

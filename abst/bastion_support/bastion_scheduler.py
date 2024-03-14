@@ -181,7 +181,6 @@ class BastionScheduler:
                 pass
             finally:
                 print(f"Deleting {i + 1}/{len(blist_copy)}")
-        rich.print("[green]Closing shared memory[/green]")
         exit(0)
 
     @classmethod

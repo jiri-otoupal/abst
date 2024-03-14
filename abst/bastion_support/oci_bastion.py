@@ -97,7 +97,7 @@ class Bastion:
             self.delete_bastion_session(sess_id, region)
             print(f"Removed Session {self.get_print_name()}")
         except Exception:
-            print(f"Looks like Bastion is already deleted {self.get_print_name()}")
+            rich.print(f"[green]Bastion successfully deleted[/green] {self.get_print_name()}")
         finally:
             self.lb.delete_context(self.context_name)
 

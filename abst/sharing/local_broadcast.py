@@ -84,6 +84,7 @@ class LocalBroadcast:
             return {}
 
         # Read data from the main shared memory
+        logging.debug(f"Stored data length: {data_length}")
         data = bytes(self._data_shm.buf[:data_length]).decode('utf-8')
         try:
             return json.loads(data)

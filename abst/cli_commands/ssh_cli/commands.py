@@ -47,4 +47,4 @@ def ssh_lin(port, name, debug):
         rich.print("[red]Please fill local-port into config for this feature to work[/red]")
         return
 
-    do_ssh(name, context["username"], context["port"])
+    do_ssh(context_name, context["username"], context["port"])
