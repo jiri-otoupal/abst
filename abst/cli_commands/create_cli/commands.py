@@ -1,6 +1,7 @@
 from time import sleep
 
 import click
+import rich
 
 from abst.bastion_support.oci_bastion import Bastion
 from abst.utils.misc_funcs import setup_calls, print_eligible
@@ -38,14 +39,16 @@ def forward(shell, debug, context_name):
         used_name = conf["used_context"]
     else:
         used_name = context_name
+    try:
+        while True:
+            Bastion(used_name, region=
+            Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region",
+                                                                                None)).create_forward_loop(
+                shell=shell)
 
-    while True:
-        Bastion(used_name, region=
-        Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region",
-                                                                            None)).create_forward_loop(
-            shell=shell)
-
-        sleep(1)
+            sleep(1)
+    except FileNotFoundError:
+        rich.print("[red]No such context found[/red]")
 
 
 @create.command(
@@ -70,13 +73,16 @@ def managed(shell, debug, context_name):
     else:
         used_name = context_name
 
-    while True:
-        Bastion(used_name, region=
-        Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region",
-                                                                            None)).create_managed_loop(
-            shell=shell)
+    try:
+        while True:
+            Bastion(used_name, region=
+            Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region",
+                                                                                None)).create_managed_loop(
+                shell=shell)
 
-        sleep(1)
+            sleep(1)
+    except FileNotFoundError:
+        rich.print("[red]No such context found[/red]")
 
 
 _do.add_command(forward)

@@ -25,19 +25,19 @@ class LocalBroadcast:
 
         try:
             # Attempt to create the main shared memory block
-            self._data_shm = shared_memory.SharedMemory(name=self._data_name, create=True, size=size)
-            self._data_is_owner = True
-        except FileExistsError:
             self._data_shm = shared_memory.SharedMemory(name=self._data_name, create=False)
             self._data_is_owner = False
+        except FileNotFoundError:
+            self._data_shm = shared_memory.SharedMemory(name=self._data_name, create=True, size=size)
+            self._data_is_owner = True
 
         try:
-            self._len_shm = shared_memory.SharedMemory(name=self._len_name, create=True, size=8)
-            self._len_shm.buf[:8] = struct.pack('Q', 0)
-            self._len_is_owner = True
-        except FileExistsError:
             self._len_shm = shared_memory.SharedMemory(name=self._len_name, create=False)
+            self._len_shm.buf[:8] = struct.pack('Q', 0)
             self._len_is_owner = False
+        except FileNotFoundError:
+            self._len_shm = shared_memory.SharedMemory(name=self._len_name, create=True, size=8)
+            self._len_is_owner = True
 
     def store_json(self, data: dict) -> int:
         """
