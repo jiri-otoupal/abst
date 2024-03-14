@@ -1,4 +1,3 @@
-import signal
 from pathlib import Path
 from threading import Thread
 from time import sleep
@@ -12,6 +11,7 @@ from rich.align import Align
 from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_stack_location, default_stack_contents, \
     default_contexts_location
+from abst.utils.misc_funcs import link_signals
 from abst.wrappers import load_stack_decorator
 
 
@@ -95,8 +95,7 @@ class BastionScheduler:
     def __display_loop(cls):
         from rich.console import Console
         console = Console()
-        signal.signal(signal.SIGINT, BastionScheduler.kill_all)
-        signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
+        link_signals()
         while True:
             clear()
             cls.__display(console)
@@ -115,8 +114,7 @@ class BastionScheduler:
     @classmethod
     @load_stack_decorator
     def run(cls, force=False, set_dir: Optional[Path] = None):
-        signal.signal(signal.SIGINT, BastionScheduler.kill_all)
-        signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
+        link_signals()
         rich.print("Will run all Bastions in parallel")
         thread_list = []
 

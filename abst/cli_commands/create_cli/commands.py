@@ -4,7 +4,7 @@ import click
 import rich
 
 from abst.bastion_support.oci_bastion import Bastion
-from abst.utils.misc_funcs import setup_calls, print_eligible
+from abst.utils.misc_funcs import setup_calls, print_eligible, link_bastion_signals
 
 
 @click.group(help="Group of commands for creating Bastion sessions")
@@ -39,16 +39,19 @@ def forward(shell, debug, context_name):
         used_name = conf["used_context"]
     else:
         used_name = context_name
+
+    bastion = None
     try:
         while True:
-            Bastion(used_name, region=
-            Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region",
-                                                                                None)).create_forward_loop(
-                shell=shell)
-
+            creds = Bastion.get_creds_path_resolve(context_name)
+            bastion = Bastion(used_name, region=Bastion.load_json(creds).get("region", None))
+            link_bastion_signals(bastion)
+            bastion.create_forward_loop(shell=shell)
             sleep(1)
     except FileNotFoundError:
         rich.print("[red]No such context found[/red]")
+    except KeyboardInterrupt:
+        bastion.kill()
 
 
 @create.command(
@@ -73,17 +76,20 @@ def managed(shell, debug, context_name):
     else:
         used_name = context_name
 
+    bastion = True
     try:
-        while True:
-            Bastion(used_name, region=
-            Bastion.load_json(Bastion.get_creds_path_resolve(context_name)).get("region",
-                                                                                None)).create_managed_loop(
-                shell=shell)
+        while type(bastion) == bool or not bastion.stopped:
+            creds = Bastion.get_creds_path_resolve(context_name)
+            bastion = Bastion(used_name, region=Bastion.load_json(creds).get("region", None))
+            link_bastion_signals(bastion)
+            bastion.create_managed_loop(shell=shell)
 
             sleep(1)
     except FileNotFoundError:
         rich.print("[red]No such context found[/red]")
-
+    except KeyboardInterrupt:
+        bastion.kill()
+        exit(0)
 
 _do.add_command(forward)
 _do.add_command(managed)

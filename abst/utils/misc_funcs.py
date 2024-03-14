@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import signal
 import subprocess
 from pathlib import Path
 from threading import Thread
@@ -149,3 +150,22 @@ def copy_file_alt_kubectl(data: list, dest_path: str, local_path: Path,
         rich.print(f"Failed to copy will try again, try {tries}/4")
         sleep(5)
         copy_file_alt_kubectl(data, dest_path, local_path, pod_name_precise, tries - 1)
+
+
+def link_signals():
+    from abst.bastion_support.bastion_scheduler import BastionScheduler
+    signal.signal(signal.SIGINT, BastionScheduler.kill_all)
+    signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
+    signal.signal(signal.SIGABRT, BastionScheduler.kill_all)
+
+
+def link_bastion_signals(bastion):
+    signal.signal(signal.SIGINT, lambda signum, frame: exit_gracefully(bastion, signum, frame))
+    signal.signal(signal.SIGTERM, lambda signum, frame: exit_gracefully(bastion, signum, frame))
+    signal.signal(signal.SIGABRT, lambda signum, frame: exit_gracefully(bastion, signum, frame))
+
+
+def exit_gracefully(bastion, signum, frame):
+    if bastion is not None:
+        bastion.kill()
+    exit(0)

@@ -1,5 +1,4 @@
 import os
-import signal
 import sys
 import threading
 
@@ -21,7 +20,7 @@ from abst.cli_commands.parallel.commands import parallel, pl
 from abst.cli_commands.ssh_cli.commands import ssh_lin
 from abst.config import default_creds_path, default_contexts_location, default_conf_path
 from abst.notifier.version_notifier import Notifier
-from abst.utils.misc_funcs import setup_calls
+from abst.utils.misc_funcs import setup_calls, link_signals
 
 
 @click.group()
@@ -113,9 +112,7 @@ def print_changelog(_config):
     rich.print(f"[yellow]{__change_log__}[/yellow]")
 
 
-signal.signal(signal.SIGINT, BastionScheduler.kill_all)
-signal.signal(signal.SIGTERM, BastionScheduler.kill_all)
-signal.signal(signal.SIGABRT, BastionScheduler.kill_all)
+link_signals()
 
 cli.add_command(parallel)
 cli.add_command(pl)

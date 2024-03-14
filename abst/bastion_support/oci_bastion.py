@@ -89,13 +89,13 @@ class Bastion:
         rich.print(f"[red]Killing Bastion {self.get_print_name()} SSH Tunnel[/red]")
         try:
             Bastion.stopped = True
-            self.active_tunnel.send_signal(signal.SIGTERM)
             sess_id = self.response["id"]
             Bastion.session_list.remove(sess_id)
             region = Bastion.session_desc.pop(sess_id)
             print(f"Cleaning {self.get_print_name()}")
             self.delete_bastion_session(sess_id, region)
             print(f"Removed Session {self.get_print_name()}")
+            self.active_tunnel.send_signal(signal.SIGTERM)
         except Exception:
             rich.print(f"[green]Bastion successfully deleted[/green] {self.get_print_name()}")
         finally:
@@ -522,7 +522,7 @@ class Bastion:
             ttl_now = now_time - created_time
             ttl_max = sdata["session_ttl_in_seconds"]
             delta = ttl_max - ttl_now.seconds
-            if delta > 0 and not BastionScheduler.stopped:
+            if delta > 0 and not BastionScheduler.stopped and not Bastion.stopped:
                 print(
                     f"Bastion {self.get_print_name()} "
                     f"Current session {delta} seconds remaining ({ttl_now}) "
@@ -555,11 +555,12 @@ class Bastion:
         if region:
             config["region"] = region
 
-        req = oci.bastion.BastionClient(config).create_session(sess_details)
-
         print("Creating Port Forward Session")
-
-        logging.debug(f"{req.data} Status: {req.status}")
+        if not cls.stopped:
+            req = oci.bastion.BastionClient(config).create_session(sess_details)
+            logging.debug(f"{req.data} Status: {req.status}")
+        else:
+            return None
         return req.data
 
     @classmethod
