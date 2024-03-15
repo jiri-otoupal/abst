@@ -91,9 +91,11 @@ def main():
     threading.stack_size(134217728)
 
     _config = Bastion.load_config()
-    current_version = semantic_version.Version(_config["changelog-version"])
+    change_log_config = _config.get("changelog-version", "0.0.1")
+
+    current_version = semantic_version.Version(change_log_config)
     package_version = semantic_version.Version(__version__)
-    if (_config.get("changelog-version", None) is None or current_version < package_version) and __change_log__:
+    if (change_log_config is None or current_version < package_version) and __change_log__:
         _config["changelog-version"] = __version__
         Bastion.write_creds_json(_config, default_conf_path)
         print_changelog(_config)
