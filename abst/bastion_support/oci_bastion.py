@@ -50,7 +50,7 @@ class Bastion:
         self.lb = LocalBroadcast(broadcast_shm_name)
         self.lb.store_json(context_name, {"region": self.region})
 
-    def __mark_used__(self, path: Path | None = None):
+    def __mark_used__(self, path: Optional[Path] = None):
         if path is None:
             cfg_path = Bastion.get_creds_path_resolve(self.context_name)
         else:
