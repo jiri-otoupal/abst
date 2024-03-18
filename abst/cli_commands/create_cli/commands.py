@@ -91,5 +91,6 @@ def managed(shell, debug, context_name):
         bastion.kill()
         exit(0)
 
+
 _do.add_command(forward)
 _do.add_command(managed)

@@ -3,6 +3,9 @@ import logging
 import os
 import signal
 import subprocess
+import threading
+from datetime import datetime, timedelta
+from functools import wraps
 from pathlib import Path
 from threading import Thread
 from time import sleep
@@ -11,7 +14,6 @@ from typing import Optional
 import rich
 from rich.logging import RichHandler
 
-from abst.bastion_support.oci_bastion import Bastion
 from abst.config import default_contexts_location, default_parallel_sets_location
 
 
@@ -34,6 +36,7 @@ def setup_debug(debug):
 
 
 def print_eligible(searched: str):
+    from abst.bastion_support.oci_bastion import Bastion
     contexts = Bastion.get_contexts()
     rich.print("[bold]Configured contexts:[/bold]")
     for key, context in contexts.items():
@@ -169,3 +172,22 @@ def exit_gracefully(bastion, signum, frame):
     if bastion is not None:
         bastion.kill()
     exit(0)
+
+
+def run_once(func):
+    """
+    A decorator that runs a function only once.
+    """
+
+    func_last_run = threading.local()
+    seconds = 10
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        now = datetime.now()
+        last_run = getattr(func_last_run, 'last_run', None)
+        if last_run is None or now - last_run >= timedelta(seconds=seconds):
+            func_last_run.last_run = now
+            return func(*args, **kwargs)
+
+    return wrapper

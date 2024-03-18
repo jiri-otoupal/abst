@@ -18,6 +18,7 @@ from abst.config import default_creds_path, \
     default_contexts_location, default_conf_path, \
     default_conf_contents, get_public_key, default_parallel_sets_location, broadcast_shm_name
 from abst.sharing.local_broadcast import LocalBroadcast
+from abst.utils.misc_funcs import run_once
 from abst.wrappers import mark_on_exit
 
 
@@ -678,10 +679,7 @@ class Bastion:
                 self.connected = False
                 return False
             if "pledge:" in line:
-                rich.print(f"({self.get_print_name()}) Success !")
-                rich.print(
-                    f"({self.get_print_name()}) SSH Tunnel Running from "
-                    f"{datetime.datetime.now()}")
+                self.print_succeeded()
                 self.connected = True
                 self.current_status = "connected"
                 self.tries = 10
@@ -715,3 +713,10 @@ class Bastion:
                 self.current_status = f"failed {self.tries} left"
         self.connected = False
         return True
+
+    @run_once
+    def print_succeeded(self):
+        rich.print(f"({self.get_print_name()}) Success !")
+        rich.print(
+            f"({self.get_print_name()}) SSH Tunnel Running from "
+            f"{datetime.datetime.now()}")
