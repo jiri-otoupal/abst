@@ -198,7 +198,7 @@ class Bastion:
         self.kill()
 
     @mark_on_exit
-    def create_forward_loop(self, shell: bool = False, force: bool = False):
+    def create_forward_loop(self, shell: bool = False, force: bool = False, tries: int = 0):
 
         from abst.bastion_support.bastion_scheduler import BastionScheduler
         if BastionScheduler.stopped:
@@ -234,7 +234,11 @@ class Bastion:
             self.current_status = "creating bastion session failed"
             rich.print(f"Failed to Create Bastion {self.get_print_name()}"
                        f" with response '{response}'")
-            return
+            if tries < 3:
+                return self.create_forward_loop(shell, force, tries + 1)
+            else:
+                rich.print(f"Failed to create bastion {tries=}, please try to restart abst")
+                exit(1)
         else:
             self.current_status = "creating bastion session succeeded"
             self.bid = bid
