@@ -235,6 +235,8 @@ class Bastion:
             rich.print(f"Failed to Create Bastion {self.get_print_name()}"
                        f" with response '{response}'")
             if tries < 3:
+                rich.print("Will try again in 1 second...")
+                sleep(1)
                 return self.create_forward_loop(shell, force, tries + 1)
             else:
                 rich.print(f"Failed to create bastion {tries=}, please try to restart abst")
