@@ -8,7 +8,7 @@ import semantic_version
 from InquirerPy import inquirer
 from requests import ConnectTimeout
 
-from abst.__version__ import __version_name__, __version__, __change_log__
+from abst.__version__ import __version_name__, __version__, __change_log__, __author__
 from abst.bastion_support.bastion_scheduler import BastionScheduler
 from abst.bastion_support.oci_bastion import Bastion
 from abst.cli_commands.context.commands import context, ctx
@@ -24,7 +24,7 @@ from abst.utils.misc_funcs import setup_calls, link_signals
 
 
 @click.group()
-@click.version_option(f"{__version__} {__version_name__}")
+@click.version_option(f"{__version__} {__version_name__} @ {__author__}")
 def cli():
     pass
 
