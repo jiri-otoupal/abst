@@ -95,7 +95,7 @@ class Bastion:
             region = Bastion.session_desc.pop(sess_id)
             print(f"Cleaning {self.get_print_name()}")
             self.delete_bastion_session(sess_id, region)
-            print(f"Removed Session {self.get_print_name()}")
+            print(f"Preparing to remove session {self.get_print_name()}")
             self.active_tunnel.send_signal(signal.SIGTERM)
         except Exception:
             rich.print(f"[green]Bastion successfully deleted[/green] {self.get_print_name()}")
