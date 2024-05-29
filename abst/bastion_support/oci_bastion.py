@@ -116,7 +116,7 @@ class Bastion:
                     oci.bastion.BastionClient(config).delete_session(sess_id)
                     return
                 except ServiceError:
-                    sleep(1)
+                    sleep(0.1)
         except Exception as ex:
             logging.info(f"Exception while trying to delete session {ex}")
 

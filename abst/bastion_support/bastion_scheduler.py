@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Thread
 from time import sleep
@@ -99,7 +100,7 @@ class BastionScheduler:
         while True:
             clear()
             cls.__display(console)
-            sleep(1.5)
+            sleep(1)
 
     @classmethod
     def _run_indefinitely(cls, func, force: bool = False):
@@ -165,20 +166,33 @@ class BastionScheduler:
         return False, None
 
     @classmethod
+    def kill_session(cls, sess, index, total):
+        try:
+            rich.print(f"[red]Killing[/red] {sess.bid}")
+            Bastion.current_status = "deleting"
+            sess.kill()
+            Bastion.delete_bastion_session(sess.bid, sess.region)
+        except Exception:
+            pass
+
+    @classmethod
     def kill_all(cls, a=None, b=None, c=None):
         # This should be only executed in running state
         cls.stopped = True
         blist_copy = list(cls.session_list)
-        for i, sess in enumerate(blist_copy):
-            try:
-                rich.print(f"[red]Killing[/red] {sess.bid}")
-                Bastion.current_status = "deleting"
-                sess.kill()
-                Bastion.delete_bastion_session(sess.bid, sess.region)
-            except Exception:
-                pass
-            finally:
-                print(f"Deleting {i + 1}/{len(blist_copy)}")
+        total_sessions = len(blist_copy)
+        deleted = 0
+
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(cls.kill_session, sess, i + 1, total_sessions)
+                       for i, sess in enumerate(blist_copy)]
+
+        # Optionally, wait for all futures to complete if you need synchronization
+        for future in futures:
+            future.result()  # This will re-raise any exceptions caught during the session killings
+            deleted += 1
+            print(f"Deleting {deleted}/{total_sessions}")
+
         exit(0)
 
     @classmethod

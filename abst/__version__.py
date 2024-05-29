@@ -10,7 +10,7 @@ __description__ = (
     "CLI Command making OCI Bastion and kubernetes usage simple and fast"
 )
 
-__version__ = "2.3.57"
+__version__ = "2.3.58"
 __author__ = "Jiri Otoupal"
 __author_email__ = "jiri-otoupal@ips-database.eu"
 __license__ = "MIT"
@@ -28,6 +28,5 @@ __ascii_art__ = r"""   .--.
 
 __version_name__ = "SSHed Penguin"
 __change_log__ = """
-* 'abst ssh' will show screen with available instances for ssh from all abst processes\n
-* moved old ssh to pod from 'abst ssh' to 'abst pod ssh'
+* Deleting sessions now happens in parallel \n
 """

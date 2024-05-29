@@ -47,7 +47,7 @@ def forward(shell, debug, context_name):
             bastion = Bastion(used_name, region=Bastion.load_json(creds).get("region", None))
             link_bastion_signals(bastion)
             bastion.create_forward_loop(shell=shell)
-            sleep(1)
+            sleep(0.1)
     except FileNotFoundError:
         rich.print("[red]No such context found[/red]")
     except KeyboardInterrupt:
@@ -84,7 +84,7 @@ def managed(shell, debug, context_name):
             link_bastion_signals(bastion)
             bastion.create_managed_loop(shell=shell)
 
-            sleep(1)
+            sleep(0.1)
     except FileNotFoundError:
         rich.print("[red]No such context found[/red]")
     except KeyboardInterrupt:
