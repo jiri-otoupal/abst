@@ -6,6 +6,7 @@ import signal
 import subprocess
 from json import JSONDecodeError
 from pathlib import Path
+from shlex import quote as shlex_quote
 from time import sleep
 from typing import Optional
 
@@ -504,9 +505,9 @@ class Bastion:
     def connect_till_deleted(self, sdata, ssh_tunnel_arg_str, status, shell,
                              already_split=False):
         """
-        Will connect to session and reconnect every time it disconnect until session is
+        Will connect to session and reconnect every time it disconnects until session is
         deleted :param shell: If you use shell environment (can have different impacts on
-        MAC and LINUX) :param sdata: :param ssh_tunnel_arg_str: :param status: :return:
+        MAC and LINUX) :param sdata: :param ssh_tunnel_arg_str: param status: :return:
         """
         from abst.bastion_support.bastion_scheduler import BastionScheduler
 
@@ -647,7 +648,7 @@ class Bastion:
 
     def __run_ssh_tunnel_call(self, ssh_tunnel_arg_str, shell, already_split=False):
 
-        return os.system(ssh_tunnel_arg_str)
+        return os.system(shlex_quote(ssh_tunnel_arg_str))
 
     def __run_ssh_tunnel(self, ssh_tunnel_arg_str, shell, already_split=False):
         """
